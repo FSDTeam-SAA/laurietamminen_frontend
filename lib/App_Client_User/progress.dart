@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'dart:ui';
 
 class ClientProgressPage extends StatefulWidget {
   const ClientProgressPage({super.key});
@@ -95,7 +96,9 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      _showDOBDialog(context);
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryDarkRed,
                       shape: RoundedRectangleBorder(
@@ -344,6 +347,104 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
           const SizedBox(height: 40),
         ],
       ),
+    );
+  }
+
+  void _showDOBDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierColor: const Color(0x337F0B34),
+      builder: (context) {
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+          child: Dialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "PLEASE CONFIRM DATE OF BIRTH",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: darkText,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                TextField(
+                  readOnly: true,
+                  decoration: InputDecoration(
+                    hintText: "Month/Day/Year",
+                    hintStyle: TextStyle(color: greyText.withOpacity(0.5)),
+                    filled: true,
+                    fillColor: Colors.white,
+                    suffixIcon: Icon(Icons.calendar_today_outlined, color: Colors.grey.shade400, size: 20),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(28),
+                      borderSide: const BorderSide(color: Color(0xFFF0D5DD)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(28),
+                      borderSide: BorderSide(color: primaryDarkRed),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryDarkRed,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      "Confirm",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: primaryDarkRed, width: 1.5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28),
+                      ),
+                    ),
+                    child: Text(
+                      "Cancel",
+                      style: TextStyle(
+                        color: primaryDarkRed,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ),
+        );
+      },
     );
   }
 }
