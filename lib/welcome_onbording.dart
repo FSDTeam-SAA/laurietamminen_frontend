@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'Authentication/login.dart';
+import 'Authentication/signup.dart';
 
 class WelcomeOnboarding extends StatefulWidget {
   const WelcomeOnboarding({super.key});
@@ -218,7 +220,10 @@ class _WelcomeOnboardingState extends State<WelcomeOnboarding> {
                 height: 56,
                 child: ElevatedButton(
                   onPressed: () {
-                    // Navigate to Login
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryDarkRed,
@@ -243,7 +248,10 @@ class _WelcomeOnboardingState extends State<WelcomeOnboarding> {
                 height: 56,
                 child: OutlinedButton(
                   onPressed: () {
-                    // Navigate to Register
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const SignupScreen()),
+                    );
                   },
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: primaryDarkRed, width: 2),
