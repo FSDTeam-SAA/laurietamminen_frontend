@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'login.dart';
+import '../User_Role/user_role.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -91,7 +92,12 @@ class _SignupScreenState extends State<SignupScreen> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const UserRoleScreen()),
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryDarkRed,
                     shape: RoundedRectangleBorder(
