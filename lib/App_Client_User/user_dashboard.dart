@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../Custom_Bottom_Nevigation_Bar/custom_bottom_nevigaiton.dart';
 import 'progress.dart'; // Imports ClientProgressPage from the same folder
+import 'add_steps.dart'; // Imports ClientAddStepsPage from the same folder
+import 'settings.dart'; // Imports ClientSettingsPage from the same folder
 
 class ClientUserDashboardScreen extends StatefulWidget {
   const ClientUserDashboardScreen({super.key});
@@ -16,8 +18,8 @@ class _ClientUserDashboardScreenState extends State<ClientUserDashboardScreen> {
   List<Widget> get _pages => [
     const _ClientHomeContent(),
     const ClientProgressPage(),
-    const SafeArea(child: Center(child: Text('Add Steps Page Content', style: TextStyle(fontSize: 20)))),
-    const SafeArea(child: Center(child: Text('Settings Page Content', style: TextStyle(fontSize: 20)))),
+    const ClientAddStepsPage(),
+    const ClientSettingsPage(),
   ];
 
   @override

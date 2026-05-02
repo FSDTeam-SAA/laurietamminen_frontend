@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../Custom_Bottom_Nevigation_Bar/custom_bottom_nevigaiton.dart';
 import 'progress.dart';
+import 'add_steps.dart';
+import 'settings.dart';
 
 class UserDashboardScreen extends StatefulWidget {
   const UserDashboardScreen({super.key});
@@ -16,8 +18,8 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
   List<Widget> get _pages => [
     const _HomeContent(),
     const ProgressPage(),
-    const SafeArea(child: Center(child: Text('Add Steps Page Content', style: TextStyle(fontSize: 20)))),
-    const SafeArea(child: Center(child: Text('Settings Page Content', style: TextStyle(fontSize: 20)))),
+    const AddStepsPage(),
+    const SettingsPage(),
   ];
 
   @override

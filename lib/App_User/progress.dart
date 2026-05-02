@@ -121,7 +121,7 @@ class _ProgressPageState extends State<ProgressPage> {
           
           // Status Card
           Container(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: const Color(0xFFFFFBFC).withOpacity(0.5),
               borderRadius: BorderRadius.circular(24),
@@ -130,32 +130,32 @@ class _ProgressPageState extends State<ProgressPage> {
             child: Stack(
               children: [
                 Positioned(
-                  right: -10,
-                  top: -10,
+                  right: 20,
+                  top: 20,
                   child: Opacity(
-                    opacity: 0.15,
+                    opacity: 0.1,
                     child: Image.asset(
                       'assets/images/bottom_nev_image/step.png',
-                      height: 120,
+                      height: 100,
                       color: primaryDarkRed,
                     ),
                   ),
                 ),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+                  padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
                   child: Column(
                     children: [
                       Text(
                         "TOTAL STEPS TODAY",
                         style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
                           color: darkText,
-                          letterSpacing: 0.5,
+                          letterSpacing: 0.8,
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
                       RichText(
                         text: TextSpan(
                           children: [
