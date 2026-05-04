@@ -1,0 +1,119 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+
+class ApiService {
+  static const String baseUrl = 'http://10.0.2.2:5000/api'; // Removed /v1 as per backend routes
+
+  // Save tokens
+  static Future<void> saveTokens(String accessToken, String refreshToken) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('access_token', accessToken);
+    await prefs.setString('refresh_token', refreshToken);
+  }
+
+  // Get tokens
+  static Future<String?> getAccessToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('access_token');
+  }
+
+  // Register
+  static Future<Map<String, dynamic>> register({
+    required String fullName,
+    required String phoneNumber,
+    required String email,
+    required String password,
+    required String confirmPassword,
+  }) async {
+    // Generate a unique ID to satisfy the backend's unique client_id index
+    final String uniqueClientId = "ID_${DateTime.now().millisecondsSinceEpoch}";
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/auth/register'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'full_name': fullName,
+        'phone_number': phoneNumber,
+        'email': email,
+        'password': password,
+        'confirm_password': confirmPassword,
+        'client_id': uniqueClientId,
+      }),
+    );
+    return jsonDecode(response.body);
+  }
+
+  // Login
+  static Future<Map<String, dynamic>> login(String email, String password) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/auth/login'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'email': email,
+        'password': password,
+      }),
+    );
+    final data = jsonDecode(response.body);
+    if (data['success'] == true) {
+      await saveTokens(data['data']['access_token'], data['data']['refresh_token']);
+    }
+    return data;
+  }
+
+  // Forgot Password
+  static Future<Map<String, dynamic>> forgotPassword(String email) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/auth/forgot-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email}),
+    );
+    return jsonDecode(response.body);
+  }
+
+  // Verify OTP
+  static Future<Map<String, dynamic>> verifyOtp(String email, String otp) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/auth/verify-otp'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email, 'otp': otp}),
+    );
+    return jsonDecode(response.body);
+  }
+
+  // Reset Password
+  static Future<Map<String, dynamic>> resetPassword({
+    required String email,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/auth/reset-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'email': email,
+        'new_password': newPassword,
+        'confirm_password': confirmPassword,
+      }),
+    );
+    return jsonDecode(response.body);
+  }
+
+  // Logout
+  static Future<Map<String, dynamic>> logout() async {
+    final token = await getAccessToken();
+    final response = await http.post(
+      Uri.parse('$baseUrl/auth/logout'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+    if (response.statusCode == 200) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('access_token');
+      await prefs.remove('refresh_token');
+    }
+    return jsonDecode(response.body);
+  }
+}

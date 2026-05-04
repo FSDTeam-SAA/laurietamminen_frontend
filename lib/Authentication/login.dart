@@ -3,6 +3,7 @@ import 'package:flutter/gestures.dart';
 import '../App_User/user_dashboard.dart';
 import 'signup.dart';
 import 'forgot_password.dart';
+import '../services/api_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,15 +13,59 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  bool _isLoading = false;
+
   final Color primaryDarkRed = const Color(0xFF800B39);
   final Color bgColor = const Color(0xFFFEEAEF);
   final Color darkText = const Color(0xFF2B0A16);
   final Color borderColor = const Color(0xFFE8C5D0);
 
-  Widget _buildTextField(String hintText, {bool isPassword = false}) {
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleLogin() async {
+    setState(() => _isLoading = true);
+    try {
+      final result = await ApiService.login(
+        _emailController.text,
+        _passwordController.text,
+      );
+
+      if (mounted) {
+        if (result['success'] == true) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const UserDashboardScreen()),
+            (route) => false,
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message'] ?? 'Login failed')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Widget _buildTextField(String hintText, TextEditingController controller, {bool isPassword = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: TextField(
+        controller: controller,
         obscureText: isPassword,
         decoration: InputDecoration(
           hintText: hintText,
@@ -83,20 +128,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 40),
-              _buildTextField("Enter your email"),
-              _buildTextField("Enter your password", isPassword: true),
+              _buildTextField("Enter your email", _emailController),
+              _buildTextField("Enter your password", _passwordController, isPassword: true),
               const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (context) => const UserDashboardScreen()),
-                      (route) => false,
-                    );
-                  },
+                  onPressed: _isLoading ? null : _handleLogin,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryDarkRed,
                     shape: RoundedRectangleBorder(
@@ -104,14 +143,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    "Log in",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          "Log in",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 24),
@@ -165,3 +206,4 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
+

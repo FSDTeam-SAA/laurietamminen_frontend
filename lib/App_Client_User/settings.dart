@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../Authentication/login.dart';
+import '../services/api_service.dart';
 
 class ClientSettingsPage extends StatefulWidget {
   const ClientSettingsPage({super.key});
@@ -13,6 +15,31 @@ class _ClientSettingsPageState extends State<ClientSettingsPage> {
   final Color greyText = const Color(0xFF8A606A);
   
   bool locationEnabled = true;
+
+  Future<void> _handleLogout() async {
+    try {
+      final result = await ApiService.logout();
+      if (mounted) {
+        if (result['success'] == true) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const LoginScreen()),
+            (route) => false,
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message'] ?? 'Logout failed')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -139,7 +166,7 @@ class _ClientSettingsPageState extends State<ClientSettingsPage> {
               _buildMenuItem(
                 icon: Icons.logout,
                 title: "Log Out",
-                onTap: () {},
+                onTap: _handleLogout,
               ),
             ],
           ),
