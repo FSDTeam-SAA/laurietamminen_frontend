@@ -116,4 +116,62 @@ class ApiService {
     }
     return jsonDecode(response.body);
   }
+
+  // Get Profile
+  static Future<Map<String, dynamic>> getProfile() async {
+    final token = await getAccessToken();
+    final response = await http.get(
+      Uri.parse('$baseUrl/users/profile'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+    return jsonDecode(response.body);
+  }
+
+  // Update Profile
+  static Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> data) async {
+    final token = await getAccessToken();
+    final response = await http.patch(
+      Uri.parse('$baseUrl/users/profile'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(data),
+    );
+    return jsonDecode(response.body);
+  }
+
+  // Update Step Goal
+  static Future<Map<String, dynamic>> updateStepGoal(int stepGoal) async {
+    final token = await getAccessToken();
+    final response = await http.patch(
+      Uri.parse('$baseUrl/users/step-goal'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'step_goal': stepGoal}),
+    );
+    return jsonDecode(response.body);
+  }
+
+  // Change Password
+  static Future<Map<String, dynamic>> changePassword(String currentPassword, String newPassword) async {
+    final token = await getAccessToken();
+    final response = await http.patch(
+      Uri.parse('$baseUrl/users/change-password'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'current_password': currentPassword,
+        'new_password': newPassword,
+      }),
+    );
+    return jsonDecode(response.body);
+  }
 }

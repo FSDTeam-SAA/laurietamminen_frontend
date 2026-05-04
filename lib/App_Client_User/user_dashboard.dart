@@ -3,6 +3,7 @@ import '../Custom_Bottom_Nevigation_Bar/custom_bottom_nevigaiton.dart';
 import 'progress.dart'; // Imports ClientProgressPage from the same folder
 import 'add_steps.dart'; // Imports ClientAddStepsPage from the same folder
 import 'settings.dart'; // Imports ClientSettingsPage from the same folder
+import '../services/api_service.dart';
 
 class ClientUserDashboardScreen extends StatefulWidget {
   const ClientUserDashboardScreen({super.key});
@@ -16,7 +17,7 @@ class _ClientUserDashboardScreenState extends State<ClientUserDashboardScreen> {
 
   // Pages for each tab
   List<Widget> get _pages => [
-    const _ClientHomeContent(),
+    const _HomeContent(),
     const ClientProgressPage(),
     const ClientAddStepsPage(),
     const ClientSettingsPage(),
@@ -42,11 +43,46 @@ class _ClientUserDashboardScreenState extends State<ClientUserDashboardScreen> {
   }
 }
 
-class _ClientHomeContent extends StatelessWidget {
-  const _ClientHomeContent();
+class _HomeContent extends StatefulWidget {
+  const _HomeContent();
+
+  @override
+  State<_HomeContent> createState() => _HomeContentState();
+}
+
+class _HomeContentState extends State<_HomeContent> {
+  Map<String, dynamic>? userProfile;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProfile();
+  }
+
+  Future<void> _fetchProfile() async {
+    try {
+      final result = await ApiService.getProfile();
+      if (mounted && result['success'] == true) {
+        setState(() {
+          userProfile = result['data'];
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final String fullName = userProfile?['full_name'] ?? "User";
+    final int stepGoal = userProfile?['step_goal'] ?? 10000;
+
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
@@ -57,10 +93,10 @@ class _ClientHomeContent extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
-                    "Hi!, Laurie Schamber",
-                    style: TextStyle(
+                    "Hi!, $fullName",
+                    style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF2B0A16),
@@ -77,7 +113,12 @@ class _ClientHomeContent extends StatelessWidget {
                   child: CircleAvatar(
                     radius: 22,
                     backgroundColor: Colors.grey.shade300,
-                    child: const Icon(Icons.person, color: Colors.grey, size: 30),
+                    backgroundImage: userProfile?['profile_picture_url'] != null && userProfile?['profile_picture_url'] != ""
+                        ? NetworkImage(userProfile!['profile_picture_url'])
+                        : null,
+                    child: userProfile?['profile_picture_url'] == null || userProfile?['profile_picture_url'] == ""
+                        ? const Icon(Icons.person, color: Colors.grey, size: 30)
+                        : null,
                   ),
                 ),
               ],
@@ -153,9 +194,9 @@ class _ClientHomeContent extends StatelessWidget {
                     children: [
                       const SizedBox(height: 5), // Adjust based on image footprints
                       RichText(
-                        text: const TextSpan(
+                        text: TextSpan(
                           children: [
-                            TextSpan(
+                            const TextSpan(
                               text: "100",
                               style: TextStyle(
                                 fontSize: 64,
@@ -164,8 +205,8 @@ class _ClientHomeContent extends StatelessWidget {
                               ),
                             ),
                             TextSpan(
-                              text: "/10,000",
-                              style: TextStyle(
+                              text: "/${stepGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
+                              style: const TextStyle(
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF800B39),
@@ -201,9 +242,9 @@ class _ClientHomeContent extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              "You're 82% of the way to your daily goal.\nKeep the flow going, Laurie Schamber.",
-              style: TextStyle(
+            Text(
+              "You're ${(100 / stepGoal * 100).toStringAsFixed(0)}% of the way to your daily goal.\nKeep the flow going, $fullName.",
+              style: const TextStyle(
                 fontSize: 16,
                 color: Color(0xFF8A606A),
                 height: 1.4,
@@ -221,7 +262,7 @@ class _ClientHomeContent extends StatelessWidget {
                   ),
                 ),
                 FractionallySizedBox(
-                  widthFactor: 0.82,
+                  widthFactor: (100 / stepGoal).clamp(0.0, 1.0),
                   child: Container(
                     height: 14,
                     decoration: BoxDecoration(

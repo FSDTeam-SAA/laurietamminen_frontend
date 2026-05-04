@@ -15,6 +15,30 @@ class _SettingsPageState extends State<SettingsPage> {
   final Color greyText = const Color(0xFF8A606A);
   
   bool locationEnabled = true;
+  Map<String, dynamic>? userProfile;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProfile();
+  }
+
+  Future<void> _fetchProfile() async {
+    try {
+      final result = await ApiService.getProfile();
+      if (mounted) {
+        if (result['success'] == true) {
+          setState(() {
+            userProfile = result['data'];
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   Future<void> _handleLogout() async {
     try {
@@ -46,7 +70,9 @@ class _SettingsPageState extends State<SettingsPage> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: _isLoading 
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
           child: Column(
             children: [
               // Header
@@ -100,7 +126,9 @@ class _SettingsPageState extends State<SettingsPage> {
                           child: CircleAvatar(
                             radius: 60,
                             backgroundColor: Colors.grey.shade300,
-                            backgroundImage: const NetworkImage('https://i.pravatar.cc/300'), // Placeholder
+                            backgroundImage: userProfile?['profile_picture_url'] != null && userProfile?['profile_picture_url'] != ""
+                                ? NetworkImage(userProfile!['profile_picture_url'])
+                                : const NetworkImage('https://i.pravatar.cc/300'), // Placeholder
                           ),
                         ),
                         Container(
@@ -116,7 +144,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      "Laurie Schamber",
+                      userProfile?['full_name'] ?? "Laurie Schamber",
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -124,7 +152,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ),
                     Text(
-                      "elena.vitality@wellness.com",
+                      userProfile?['email'] ?? "elena.vitality@wellness.com",
                       style: TextStyle(
                         fontSize: 16,
                         color: greyText,
@@ -140,11 +168,12 @@ class _SettingsPageState extends State<SettingsPage> {
               _buildMenuItem(
                 icon: Icons.person_outline,
                 title: "Personal Information",
-                onTap: () {
-                  Navigator.push(
+                onTap: () async {
+                  await Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const EditProfilePage()),
                   );
+                  _fetchProfile(); // Refresh on back
                 },
                 trailing: Icon(Icons.chevron_right, color: darkText),
               ),
@@ -212,19 +241,93 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 }
 
-class EditProfilePage extends StatelessWidget {
+class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
 
+  @override
+  State<EditProfilePage> createState() => _EditProfilePageState();
+}
+
+class _EditProfilePageState extends State<EditProfilePage> {
   final Color primaryDarkRed = const Color(0xFF800B39);
   final Color darkText = const Color(0xFF2B0A16);
   final Color greyText = const Color(0xFF8A606A);
+
+  final TextEditingController _fullNameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _dobController = TextEditingController();
+  final TextEditingController _heightController = TextEditingController();
+  final TextEditingController _weightController = TextEditingController();
+  bool _isLoading = true;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProfile();
+  }
+
+  Future<void> _fetchProfile() async {
+    try {
+      final result = await ApiService.getProfile();
+      if (mounted && result['success'] == true) {
+        final data = result['data'];
+        setState(() {
+          _fullNameController.text = data['full_name'] ?? '';
+          _emailController.text = data['email'] ?? '';
+          _dobController.text = data['date_of_birth']?.toString().split('T')[0] ?? '';
+          _heightController.text = data['height']?.toString() ?? '';
+          _weightController.text = data['weight']?.toString() ?? '';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _saveProfile() async {
+    setState(() => _isSaving = true);
+    try {
+      final result = await ApiService.updateProfile({
+        'full_name': _fullNameController.text,
+        'email': _emailController.text,
+        'date_of_birth': _dobController.text,
+        'height': double.tryParse(_heightController.text),
+        'weight': double.tryParse(_weightController.text),
+      });
+
+      if (mounted) {
+        if (result['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Profile updated successfully')),
+          );
+          Navigator.pop(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message'] ?? 'Update failed')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFEEAEF),
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: _isLoading 
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
           child: Column(
             children: [
               // Header
@@ -245,17 +348,19 @@ class EditProfilePage extends StatelessWidget {
                         color: darkText,
                       ),
                     ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text(
-                        "Save",
-                        style: TextStyle(
-                          color: primaryDarkRed,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                    _isSaving 
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                      : TextButton(
+                        onPressed: _saveProfile,
+                        child: Text(
+                          "Save",
+                          style: TextStyle(
+                            color: primaryDarkRed,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -331,21 +436,21 @@ class EditProfilePage extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 24),
-                    _buildTextField(label: "FULL NAME", value: "Laurie Schamber"),
+                    _buildTextField(label: "FULL NAME", controller: _fullNameController),
                     const SizedBox(height: 16),
-                    _buildTextField(label: "EMAIL ADDRESS", value: "elena.fit@lumina.com"),
+                    _buildTextField(label: "EMAIL ADDRESS", controller: _emailController),
                     const SizedBox(height: 16),
                     _buildTextField(
                       label: "BIRTH OF DATE",
-                      value: "Month/Date/Year",
+                      controller: _dobController,
                       suffixIcon: Icon(Icons.calendar_today_outlined, color: Colors.grey.shade400, size: 20),
                     ),
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        Expanded(child: _buildTextField(label: "HEIGHT (CM)", value: "168")),
+                        Expanded(child: _buildTextField(label: "HEIGHT (CM)", controller: _heightController)),
                         const SizedBox(width: 16),
-                        Expanded(child: _buildTextField(label: "WEIGHT (KG)", value: "62")),
+                        Expanded(child: _buildTextField(label: "WEIGHT (KG)", controller: _weightController)),
                       ],
                     ),
                   ],
@@ -358,7 +463,7 @@ class EditProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildTextField({required String label, required String value, Widget? suffixIcon}) {
+  Widget _buildTextField({required String label, required TextEditingController controller, Widget? suffixIcon}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -373,7 +478,7 @@ class EditProfilePage extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         TextField(
-          controller: TextEditingController(text: value),
+          controller: controller,
           decoration: InputDecoration(
             filled: true,
             fillColor: Colors.white,
