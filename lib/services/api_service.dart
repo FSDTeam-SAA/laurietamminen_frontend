@@ -196,7 +196,7 @@ class ApiService {
   }
 
   // Confirm Steps
-  static Future<Map<String, dynamic>> confirmSteps(int steps) async {
+  static Future<Map<String, dynamic>> confirmSteps(dynamic steps) async {
     final token = await getAccessToken();
     final response = await http.post(
       Uri.parse('$baseUrl/steps/confirm'),
@@ -235,11 +235,11 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  // Get Triggered Alerts
-  static Future<Map<String, dynamic>> getTriggeredAlerts() async {
+  // Get Admin Alerts (For Notifications Screen)
+  static Future<Map<String, dynamic>> getAdminAlerts() async {
     final token = await getAccessToken();
     final response = await http.get(
-      Uri.parse('$baseUrl/alerts/trigger'),
+      Uri.parse('$baseUrl/admin/alerts'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -248,15 +248,80 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  // Get Alert Location Update
-  static Future<Map<String, dynamic>> getAlertLocationUpdate(String alertId) async {
+  // Get Single Alert Detail (For Admin Detail Screen)
+  static Future<Map<String, dynamic>> getAlertDetail(String alertId) async {
     final token = await getAccessToken();
     final response = await http.get(
+      Uri.parse('$baseUrl/admin/alerts/$alertId'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+    return jsonDecode(response.body);
+  }
+
+  // Trigger Alert
+  static Future<Map<String, dynamic>> triggerAlert({
+    required String triggerToken,
+    required String dateOfBirth,
+    double lat = 23.8103,
+    double lng = 90.4125,
+    int accuracy = 12,
+    String streetAddress = "123 Demo Street, Dhaka",
+    String signalStrength = "strong",
+    String connectionState = "4g",
+    String deviceId = "device-001",
+  }) async {
+    final token = await getAccessToken();
+    final response = await http.post(
+      Uri.parse('$baseUrl/alerts/trigger'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'trigger_token': triggerToken,
+        'date_of_birth': dateOfBirth,
+        'lat': lat,
+        'lng': lng,
+        'accuracy': accuracy,
+        'street_address': streetAddress,
+        'signal_strength': signalStrength,
+        'connection_state': connectionState,
+        'device_id': deviceId,
+      }),
+    );
+    return jsonDecode(response.body);
+  }
+
+  // Update Alert Location
+  static Future<Map<String, dynamic>> updateAlertLocation({
+    required String alertId,
+    double lat = 23.8111,
+    double lng = 90.4131,
+    int accuracy = 8,
+    String streetAddress = "Updated Demo Street, Dhaka",
+    String signalStrength = "medium",
+    String connectionState = "wifi",
+    String deviceId = "device-001",
+  }) async {
+    final token = await getAccessToken();
+    final response = await http.patch(
       Uri.parse('$baseUrl/alerts/$alertId/location-update'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       },
+      body: jsonEncode({
+        'lat': lat,
+        'lng': lng,
+        'accuracy': accuracy,
+        'street_address': streetAddress,
+        'signal_strength': signalStrength,
+        'connection_state': connectionState,
+        'device_id': deviceId,
+      }),
     );
     return jsonDecode(response.body);
   }

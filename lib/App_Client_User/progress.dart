@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'dart:ui';
+import '../services/api_service.dart';
 
 class ClientProgressPage extends StatefulWidget {
   const ClientProgressPage({super.key});
@@ -14,6 +15,101 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
   final Color bgColor = const Color(0xFFFEEAEF);
   final Color darkText = const Color(0xFF2B0A16);
   final Color greyText = const Color(0xFF8A606A);
+
+  final TextEditingController _stepsController = TextEditingController();
+  final TextEditingController _dobController = TextEditingController();
+  bool _isSubmitting = false;
+  String? _triggerToken;
+
+  Future<void> _handleConfirm() async {
+    final stepsInput = _stepsController.text.trim();
+    if (stepsInput.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter steps")),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    try {
+      // 1. Confirm Steps (This generates token if input is '1234!')
+      final result = await ApiService.confirmSteps(stepsInput);
+      
+      if (mounted) {
+        if (result['trigger'] == true) {
+          _triggerToken = result['trigger_token'];
+          // 2. Show DOB Dialog
+          _showDOBDialog(context);
+        } else if (result['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Steps confirmed successfully")),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message'] ?? "Error confirming steps")),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e")),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _handleDOBConfirm() async {
+    final dob = _dobController.text.trim();
+    if (dob.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter date of birth")),
+      );
+      return;
+    }
+
+    if (_triggerToken == null) return;
+
+    Navigator.pop(context); // Close dialog
+    setState(() => _isSubmitting = true);
+
+    try {
+      // 3. Trigger Alert
+      final result = await ApiService.triggerAlert(
+        triggerToken: _triggerToken!,
+        dateOfBirth: dob,
+        lat: 23.8103,
+        lng: 90.4125,
+        accuracy: 12,
+        streetAddress: "123 Demo Street, Dhaka",
+        signalStrength: "strong",
+        connectionState: "4g",
+        deviceId: "device-001",
+      );
+
+      if (mounted) {
+        if (result['success'] == true || result['data'] != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Alert triggered successfully!")),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message'] ?? "Error triggering alert")),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e")),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +166,7 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                 ),
                 const SizedBox(height: 16),
                 TextField(
+                  controller: _stepsController,
                   decoration: InputDecoration(
                     hintText: "Enter steps...",
                     hintStyle: TextStyle(color: greyText.withOpacity(0.5)),
@@ -96,9 +193,7 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: () {
-                      _showDOBDialog(context);
-                    },
+                    onPressed: _isSubmitting ? null : _handleConfirm,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryDarkRed,
                       shape: RoundedRectangleBorder(
@@ -106,14 +201,16 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                       ),
                       elevation: 0,
                     ),
-                    child: const Text(
-                      "Confirm",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child: _isSubmitting
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                            "Confirm",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                 ),
               ],
@@ -350,99 +447,144 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
     );
   }
 
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime(2000),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: primaryDarkRed,
+              onPrimary: Colors.white,
+              onSurface: darkText,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        _dobController.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+      });
+    }
+  }
+
   void _showDOBDialog(BuildContext context) {
     showDialog(
       context: context,
+      barrierDismissible: false,
       barrierColor: const Color(0x337F0B34),
       builder: (context) {
-        return BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-          child: Dialog(
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  "PLEASE CONFIRM DATE OF BIRTH",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: darkText,
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+              child: Dialog(
+                backgroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        "PLEASE CONFIRM DATE OF BIRTH",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: darkText,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      TextField(
+                        controller: _dobController,
+                        readOnly: true,
+                        onTap: () async {
+                          final DateTime? picked = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime(2000),
+                            firstDate: DateTime(1900),
+                            lastDate: DateTime.now(),
+                          );
+                          if (picked != null) {
+                            setDialogState(() {
+                              _dobController.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+                            });
+                          }
+                        },
+                        decoration: InputDecoration(
+                          hintText: "Select Date of Birth",
+                          hintStyle: TextStyle(color: greyText.withOpacity(0.5)),
+                          filled: true,
+                          fillColor: Colors.white,
+                          suffixIcon: Icon(Icons.calendar_today_outlined, color: primaryDarkRed, size: 20),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(28),
+                            borderSide: const BorderSide(color: Color(0xFFF0D5DD)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(28),
+                            borderSide: BorderSide(color: primaryDarkRed),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: _handleDOBConfirm,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryDarkRed,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(28),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: const Text(
+                            "Confirm",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: primaryDarkRed, width: 1.5),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(28),
+                            ),
+                          ),
+                          child: Text(
+                            "Cancel",
+                            style: TextStyle(
+                              color: primaryDarkRed,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 24),
-                TextField(
-                  readOnly: true,
-                  decoration: InputDecoration(
-                    hintText: "Month/Day/Year",
-                    hintStyle: TextStyle(color: greyText.withOpacity(0.5)),
-                    filled: true,
-                    fillColor: Colors.white,
-                    suffixIcon: Icon(Icons.calendar_today_outlined, color: Colors.grey.shade400, size: 20),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(28),
-                      borderSide: const BorderSide(color: Color(0xFFF0D5DD)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(28),
-                      borderSide: BorderSide(color: primaryDarkRed),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryDarkRed,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(28),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      "Confirm",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: primaryDarkRed, width: 1.5),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(28),
-                      ),
-                    ),
-                    child: Text(
-                      "Cancel",
-                      style: TextStyle(
-                        color: primaryDarkRed,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          ),
+              ),
+            );
+          },
         );
       },
     );

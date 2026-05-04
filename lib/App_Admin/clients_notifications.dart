@@ -24,10 +24,17 @@ class _ClientsNotificationScreenState extends State<ClientsNotificationScreen> {
 
   Future<void> _fetchAlerts() async {
     try {
-      final result = await ApiService.getTriggeredAlerts();
+      final result = await ApiService.getAdminAlerts();
+      debugPrint("Fetched alerts: $result");
       if (mounted && result['success'] == true) {
+        final data = result['data'];
         setState(() {
-          _alerts = result['data'] ?? [];
+          if (data is List) {
+            _alerts = data;
+          } else {
+            debugPrint("Warning: Expected list in data but got ${data.runtimeType}");
+            _alerts = [];
+          }
           _isLoading = false;
         });
       } else {
@@ -89,28 +96,20 @@ class _ClientsNotificationScreenState extends State<ClientsNotificationScreen> {
                       itemCount: _alerts.length,
                       itemBuilder: (context, index) {
                         final alert = _alerts[index];
+                        if (alert is! Map) {
+                          return const SizedBox.shrink();
+                        }
                         return Column(
                           children: [
                             _buildNotificationCard(
                               context,
-                              alertId: alert['_id'],
-                              clientId:
-                                  alert['client_id']?['full_name'] ??
-                                  alert['client_id']?['client_id'] ??
-                                  "Unknown Client",
-                              status: alert['status'] ?? "PENDING",
-                              location:
-                                  alert['location_name'] ?? "Unknown Location",
-                              time:
-                                  "Just Now", // You can format alert['createdAt'] here
-                              lat:
-                                  alert['location']?['coordinates']?[1]
-                                      ?.toDouble() ??
-                                  40.660,
-                              lng:
-                                  alert['location']?['coordinates']?[0]
-                                      ?.toDouble() ??
-                                  -73.969,
+                                alertId: alert['alert_id']?.toString() ?? "",
+                                clientId: alert['full_name']?.toString() ?? "Unknown Client",
+                                status: alert['status']?.toString() ?? "PENDING",
+                                location: alert['street_address']?.toString() ?? "Unknown Location",
+                                time: "Just Now",
+                                lat: alert['coordinates']?['lat']?.toDouble() ?? 23.8103,
+                                lng: alert['coordinates']?['lng']?.toDouble() ?? 90.4125,
                             ),
                             const SizedBox(height: 24),
                           ],

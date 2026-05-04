@@ -36,13 +36,13 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
 
   Future<void> _fetchInitialDetails() async {
     try {
-      final result = await ApiService.getAlertLocationUpdate(widget.alertId);
+      final result = await ApiService.getAlertDetail(widget.alertId);
       if (mounted && result['success'] == true) {
         setState(() {
           _alertData = result['data'];
-          final coords = _alertData?['location']?['coordinates'];
-          if (coords != null && coords.length >= 2) {
-            _currentLocation = LatLng(coords[1].toDouble(), coords[0].toDouble());
+          final coords = _alertData?['coordinates'];
+          if (coords != null) {
+            _currentLocation = LatLng(coords['lat'].toDouble(), coords['lng'].toDouble());
           }
           _isLoading = false;
         });
@@ -55,13 +55,13 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
 
   Future<void> _updateLocation() async {
     try {
-      final result = await ApiService.getAlertLocationUpdate(widget.alertId);
+      final result = await ApiService.getAlertDetail(widget.alertId);
       if (mounted && result['success'] == true) {
         setState(() {
           _alertData = result['data'];
-          final coords = _alertData?['location']?['coordinates'];
-          if (coords != null && coords.length >= 2) {
-            _currentLocation = LatLng(coords[1].toDouble(), coords[0].toDouble());
+          final coords = _alertData?['coordinates'];
+          if (coords != null) {
+            _currentLocation = LatLng(coords['lat'].toDouble(), coords['lng'].toDouble());
           }
         });
       }
@@ -103,7 +103,11 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
                         children: [
                           IconButton(
                             icon: const Icon(Icons.close, color: darkText, size: 28),
-                            onPressed: () => Navigator.pop(context),
+                            onPressed: () {
+                              if (Navigator.of(context).canPop()) {
+                                Navigator.of(context).pop();
+                              }
+                            },
                           ),
                           const SizedBox(width: 8),
                           const Flexible(
@@ -263,7 +267,7 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        _alertData?['client_id']?['full_name'] ?? _alertData?['client_id']?['client_id'] ?? "Unknown",
+                        _alertData?['full_name'] ?? _alertData?['client_id'] ?? "Unknown",
                         style: const TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
@@ -305,7 +309,7 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              _alertData?['location_name'] ?? "Unknown Address",
+                              _alertData?['street_address'] ?? "Unknown Address",
                               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: darkText),
                             ),
                           ),
