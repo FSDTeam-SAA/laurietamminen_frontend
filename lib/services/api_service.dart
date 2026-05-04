@@ -234,4 +234,30 @@ class ApiService {
     );
     return jsonDecode(response.body);
   }
+
+  // Get Triggered Alerts
+  static Future<Map<String, dynamic>> getTriggeredAlerts() async {
+    final token = await getAccessToken();
+    final response = await http.get(
+      Uri.parse('$baseUrl/alerts/trigger'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+    return jsonDecode(response.body);
+  }
+
+  // Get Alert Location Update
+  static Future<Map<String, dynamic>> getAlertLocationUpdate(String alertId) async {
+    final token = await getAccessToken();
+    final response = await http.get(
+      Uri.parse('$baseUrl/alerts/$alertId/location-update'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+    return jsonDecode(response.body);
+  }
 }

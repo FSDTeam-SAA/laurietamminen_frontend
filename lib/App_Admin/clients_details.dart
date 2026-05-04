@@ -1,7 +1,74 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import '../services/api_service.dart';
+import 'dart:async';
 
-class ClientsDetailsScreen extends StatelessWidget {
-  const ClientsDetailsScreen({super.key});
+class ClientsDetailsScreen extends StatefulWidget {
+  final String alertId;
+  const ClientsDetailsScreen({super.key, required this.alertId});
+
+  @override
+  State<ClientsDetailsScreen> createState() => _ClientsDetailsScreenState();
+}
+
+class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
+  Map<String, dynamic>? _alertData;
+  bool _isLoading = true;
+  Timer? _locationTimer;
+  LatLng _currentLocation = const LatLng(38.897, -77.036);
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchInitialDetails();
+    // Set up a timer to update location every 10 seconds
+    _locationTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      _updateLocation();
+    });
+  }
+
+  @override
+  void dispose() {
+    _locationTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _fetchInitialDetails() async {
+    try {
+      final result = await ApiService.getAlertLocationUpdate(widget.alertId);
+      if (mounted && result['success'] == true) {
+        setState(() {
+          _alertData = result['data'];
+          final coords = _alertData?['location']?['coordinates'];
+          if (coords != null && coords.length >= 2) {
+            _currentLocation = LatLng(coords[1].toDouble(), coords[0].toDouble());
+          }
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching alert details: $e");
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _updateLocation() async {
+    try {
+      final result = await ApiService.getAlertLocationUpdate(widget.alertId);
+      if (mounted && result['success'] == true) {
+        setState(() {
+          _alertData = result['data'];
+          final coords = _alertData?['location']?['coordinates'];
+          if (coords != null && coords.length >= 2) {
+            _currentLocation = LatLng(coords[1].toDouble(), coords[0].toDouble());
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint("Error updating location: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -10,6 +77,13 @@ class ClientsDetailsScreen extends StatelessWidget {
     const Color softPink = Color(0xFFFDE6ED);
     const Color darkText = Color(0xFF2B0A16);
     const Color greyText = Color(0xFF8A606A);
+
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: bgColor,
+        body: Center(child: CircularProgressIndicator(color: primaryDarkRed)),
+      );
+    }
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -24,26 +98,28 @@ class ClientsDetailsScreen extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.close, color: darkText, size: 28),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                        const SizedBox(width: 8),
-                        const Flexible(
-                          child: Text(
-                            "Client Detail",
-                            style: TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.bold,
-                              color: primaryDarkRed,
-                              letterSpacing: -0.5,
-                            ),
-                            overflow: TextOverflow.ellipsis,
+                    Expanded(
+                      child: Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.close, color: darkText, size: 28),
+                            onPressed: () => Navigator.pop(context),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 8),
+                          const Flexible(
+                            child: Text(
+                              "Client Detail",
+                              style: TextStyle(
+                                fontSize: 26,
+                                fontWeight: FontWeight.bold,
+                                color: primaryDarkRed,
+                                letterSpacing: -0.5,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     Container(
                       width: 44,
@@ -81,12 +157,27 @@ class ClientsDetailsScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(30),
                     child: Stack(
                       children: [
-                        Image.network(
-                          "https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/-77.036,38.897,14,0/600x600?access_token=pk.eyJ1IjoiZGVtbyIsImEiOiJjaXpvaHExZ20wMDBqMzJvM2ZqM2ZqM2ZqIn0",
-                          width: double.infinity,
-                          height: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey[200]),
+                        FlutterMap(
+                          options: MapOptions(
+                            initialCenter: _currentLocation,
+                            initialZoom: 15.0,
+                          ),
+                          children: [
+                            TileLayer(
+                              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                              userAgentPackageName: 'com.example.laurietamminen_frontend',
+                            ),
+                            MarkerLayer(
+                              markers: [
+                                Marker(
+                                  point: _currentLocation,
+                                  width: 48,
+                                  height: 48,
+                                  child: const Icon(Icons.location_on, color: primaryDarkRed, size: 48),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                         // User Location Box
                         Positioned(
@@ -94,7 +185,7 @@ class ClientsDetailsScreen extends StatelessWidget {
                           left: 20,
                           child: _buildOverlayBox(
                             title: "USER LOCATION",
-                            content: "37.7749° N,\n122.4194° W",
+                            content: "${_currentLocation.latitude.toStringAsFixed(4)}° N,\n${_currentLocation.longitude.toStringAsFixed(4)}° W",
                             icon: Icons.my_location,
                           ),
                         ),
@@ -103,14 +194,10 @@ class ClientsDetailsScreen extends StatelessWidget {
                           top: 20,
                           right: 20,
                           child: _buildOverlayBox(
-                            title: "ACCURACY",
-                            content: "± 4.2 Meters",
+                            title: "STATUS",
+                            content: _alertData?['status'] ?? "PENDING",
                             isCenter: true,
                           ),
-                        ),
-                        // Marker
-                        const Center(
-                          child: Icon(Icons.location_on, color: primaryDarkRed, size: 48),
                         ),
                       ],
                     ),
@@ -131,6 +218,7 @@ class ClientsDetailsScreen extends StatelessWidget {
                         icon: Icons.phone,
                         bgColor: primaryDarkRed,
                         textColor: Colors.white,
+                        onTap: () {},
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -140,6 +228,7 @@ class ClientsDetailsScreen extends StatelessWidget {
                         icon: Icons.chat_bubble_outline,
                         bgColor: softPink,
                         textColor: primaryDarkRed,
+                        onTap: () {},
                       ),
                     ),
                   ],
@@ -173,9 +262,9 @@ class ClientsDetailsScreen extends StatelessWidget {
                         style: TextStyle(color: greyText, fontSize: 13, fontWeight: FontWeight.w600, letterSpacing: 0.5),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        "Client-20260418-01",
-                        style: TextStyle(
+                      Text(
+                        _alertData?['client_id']?['full_name'] ?? _alertData?['client_id']?['client_id'] ?? "Unknown",
+                        style: const TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
                           color: primaryDarkRed,
@@ -198,9 +287,9 @@ class ClientsDetailsScreen extends StatelessWidget {
                               decoration: const BoxDecoration(color: primaryDarkRed, shape: BoxShape.circle),
                             ),
                             const SizedBox(width: 8),
-                            const Text(
-                              "Active for 4m 12s",
-                              style: TextStyle(color: primaryDarkRed, fontSize: 13, fontWeight: FontWeight.w900),
+                            Text(
+                              "Status: ${_alertData?['status'] ?? 'PENDING'}",
+                              style: const TextStyle(color: primaryDarkRed, fontSize: 13, fontWeight: FontWeight.w900),
                             ),
                           ],
                         ),
@@ -214,9 +303,11 @@ class ClientsDetailsScreen extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            "9528 25 Hwy",
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: darkText),
+                          Expanded(
+                            child: Text(
+                              _alertData?['location_name'] ?? "Unknown Address",
+                              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: darkText),
+                            ),
                           ),
                           Container(
                             padding: const EdgeInsets.all(8),
@@ -245,9 +336,9 @@ class ClientsDetailsScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: Column(
                   children: [
-                    _buildStatusButton("Mark In Progress"),
+                    _buildStatusButton("Mark In Progress", () {}),
                     const SizedBox(height: 16),
-                    _buildStatusButton("Resolve"),
+                    _buildStatusButton("Resolve", () {}),
                   ],
                 ),
               ),
@@ -259,9 +350,9 @@ class ClientsDetailsScreen extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
                 child: Row(
                   children: [
-                    Expanded(child: _buildStatCard("LAST SYNC", "2s ago")),
+                    Expanded(child: _buildStatCard("LAST SYNC", "Just Now")),
                     const SizedBox(width: 16),
-                    Expanded(child: _buildStatCard("DEVICE ID", "DW-0992")),
+                    Expanded(child: _buildStatCard("ALERT ID", widget.alertId.substring(widget.alertId.length - 6))),
                   ],
                 ),
               ),
@@ -303,37 +394,42 @@ class ClientsDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButton({required String label, required IconData icon, required Color bgColor, required Color textColor}) {
-    return Container(
-      height: 60,
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: bgColor == Colors.white ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)] : null,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: textColor, size: 24),
-          const SizedBox(width: 10),
-          Text(label, style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.bold)),
-        ],
+  Widget _buildActionButton({required String label, required IconData icon, required Color bgColor, required Color textColor, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 60,
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(30),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: textColor, size: 24),
+            const SizedBox(width: 10),
+            Text(label, style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildStatusButton(String label) {
-    return Container(
-      width: double.infinity,
-      height: 60,
-      decoration: BoxDecoration(
-        color: const Color(0xFFFDE6ED),
-        borderRadius: BorderRadius.circular(30),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        label,
-        style: const TextStyle(color: Color(0xFF800B39), fontSize: 17, fontWeight: FontWeight.bold),
+  Widget _buildStatusButton(String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        height: 60,
+        decoration: BoxDecoration(
+          color: const Color(0xFFFDE6ED),
+          borderRadius: BorderRadius.circular(30),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: const TextStyle(color: Color(0xFF800B39), fontSize: 17, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
@@ -344,13 +440,6 @@ class ClientsDetailsScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

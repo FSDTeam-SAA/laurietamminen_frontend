@@ -1,15 +1,48 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'clients_details.dart';
+import '../services/api_service.dart';
 
-class ClientsNotificationScreen extends StatelessWidget {
+class ClientsNotificationScreen extends StatefulWidget {
   const ClientsNotificationScreen({super.key});
+
+  @override
+  State<ClientsNotificationScreen> createState() =>
+      _ClientsNotificationScreenState();
+}
+
+class _ClientsNotificationScreenState extends State<ClientsNotificationScreen> {
+  List<dynamic> _alerts = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAlerts();
+  }
+
+  Future<void> _fetchAlerts() async {
+    try {
+      final result = await ApiService.getTriggeredAlerts();
+      if (mounted && result['success'] == true) {
+        setState(() {
+          _alerts = result['data'] ?? [];
+          _isLoading = false;
+        });
+      } else {
+        setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      debugPrint("Error fetching alerts: $e");
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     const Color primaryDarkRed = Color(0xFF800B39);
     const Color bgColor = Color(0xFFFDF5F7);
-    const Color darkText = Color(0xFF2B0A16);
-    const Color greyText = Color(0xFF8A606A);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -45,48 +78,45 @@ class ClientsNotificationScreen extends StatelessWidget {
             ),
 
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                children: [
-                  _buildNotificationCard(
-                    context,
-                    clientId: "Client-29402",
-                    status: "PENDING",
-                    statusColor: const Color(0xFFFDF5E1),
-                    statusTextColor: const Color(0xFFD4A017),
-                    location: "Prospect Park, Brooklyn",
-                    time: "14:02 Today",
-                    mapUrl: "https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/-73.969,40.660,14,0/600x300?access_token=pk.eyJ1IjoiZGVtbyIsImEiOiJjaXpvaHExZ20wMDBqMzJvM2ZqM2ZqM2ZqIn0",
-                    isDetailsActive: true,
-                  ),
-                  const SizedBox(height: 24),
-                  _buildNotificationCard(
-                    context,
-                    clientId: "Client-11804",
-                    status: "IN PROGRESS",
-                    statusColor: const Color(0xFFE3F2FD),
-                    statusTextColor: const Color(0xFF1E88E5),
-                    location: "Prospect Park, Brooklyn",
-                    time: "14:02 Today",
-                    mapUrl: "https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/-73.971,40.665,14,0/600x300?access_token=pk.eyJ1IjoiZGVtbyIsImEiOiJjaXpvaHExZ20wMDBqMzJvM2ZqM2ZqM2ZqIn0",
-                    isDetailsActive: false,
-                  ),
-                  const SizedBox(height: 24),
-                  _buildNotificationCard(
-                    context,
-                    clientId: "Client-09433",
-                    status: "CLOSED",
-                    statusColor: const Color(0xFFE8F5E9),
-                    statusTextColor: const Color(0xFF43A047),
-                    location: "Prospect Park, Brooklyn",
-                    time: "14:02 Today",
-                    mapUrl: "https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/-73.975,40.670,14,0/600x300?access_token=pk.eyJ1IjoiZGVtbyIsImEiOiJjaXpvaHExZ20wMDBqMzJvM2ZqM2ZqM2ZqIn0",
-                    isDetailsActive: false,
-                    isClosed: true,
-                  ),
-                  const SizedBox(height: 40),
-                ],
-              ),
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(color: primaryDarkRed),
+                    )
+                  : _alerts.isEmpty
+                  ? const Center(child: Text("No notifications found"))
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                      itemCount: _alerts.length,
+                      itemBuilder: (context, index) {
+                        final alert = _alerts[index];
+                        return Column(
+                          children: [
+                            _buildNotificationCard(
+                              context,
+                              alertId: alert['_id'],
+                              clientId:
+                                  alert['client_id']?['full_name'] ??
+                                  alert['client_id']?['client_id'] ??
+                                  "Unknown Client",
+                              status: alert['status'] ?? "PENDING",
+                              location:
+                                  alert['location_name'] ?? "Unknown Location",
+                              time:
+                                  "Just Now", // You can format alert['createdAt'] here
+                              lat:
+                                  alert['location']?['coordinates']?[1]
+                                      ?.toDouble() ??
+                                  40.660,
+                              lng:
+                                  alert['location']?['coordinates']?[0]
+                                      ?.toDouble() ??
+                                  -73.969,
+                            ),
+                            const SizedBox(height: 24),
+                          ],
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -114,19 +144,28 @@ class ClientsNotificationScreen extends StatelessWidget {
 
   Widget _buildNotificationCard(
     BuildContext context, {
+    required String alertId,
     required String clientId,
     required String status,
-    required Color statusColor,
-    required Color statusTextColor,
     required String location,
     required String time,
-    required String mapUrl,
-    bool isDetailsActive = false,
-    bool isClosed = false,
+    required double lat,
+    required double lng,
   }) {
     const Color primaryDarkRed = Color(0xFF800B39);
     const Color darkText = Color(0xFF2B0A16);
     const Color greyText = Color(0xFF8A606A);
+
+    Color statusColor = const Color(0xFFFDF5E1);
+    Color statusTextColor = const Color(0xFFD4A017);
+
+    if (status == "IN_PROGRESS") {
+      statusColor = const Color(0xFFE3F2FD);
+      statusTextColor = const Color(0xFF1E88E5);
+    } else if (status == "RESOLVED" || status == "CLOSED") {
+      statusColor = const Color(0xFFE8F5E9);
+      statusTextColor = const Color(0xFF43A047);
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -143,39 +182,43 @@ class ClientsNotificationScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Map Image - Fixed with proper aspect ratio and fit
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
             child: SizedBox(
               height: 200,
               width: double.infinity,
-              child: Image.network(
-                mapUrl,
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Container(
-                    color: Colors.grey[100],
-                    child: const Center(child: CircularProgressIndicator()),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: Colors.grey[200],
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.map_outlined, size: 40, color: Colors.grey[400]),
-                        const SizedBox(height: 8),
-                        Text("Map Preview", style: TextStyle(color: Colors.grey[500], fontSize: 12)),
-                      ],
-                    ),
-                  );
-                },
+              child: FlutterMap(
+                options: MapOptions(
+                  initialCenter: LatLng(lat, lng),
+                  initialZoom: 14.0,
+                  interactionOptions: const InteractionOptions(
+                    flags: InteractiveFlag.none,
+                  ),
+                ),
+                children: [
+                  TileLayer(
+                    urlTemplate:
+                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'com.example.laurietamminen_frontend',
+                  ),
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: LatLng(lat, lng),
+                        width: 40,
+                        height: 40,
+                        child: const Icon(
+                          Icons.location_on,
+                          color: primaryDarkRed,
+                          size: 30,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
-          
           Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(
@@ -184,17 +227,23 @@ class ClientsNotificationScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      clientId,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: darkText,
-                        letterSpacing: -0.5,
+                    Expanded(
+                      child: Text(
+                        clientId,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: darkText,
+                          letterSpacing: -0.5,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: statusColor,
                         borderRadius: BorderRadius.circular(10),
@@ -210,56 +259,75 @@ class ClientsNotificationScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                
                 const SizedBox(height: 16),
-                
                 Row(
                   children: [
-                    Icon(Icons.location_on_outlined, size: 20, color: greyText.withOpacity(0.8)),
+                    Icon(
+                      Icons.location_on_outlined,
+                      size: 20,
+                      color: greyText.withOpacity(0.8),
+                    ),
                     const SizedBox(width: 10),
-                    Text(
-                      location,
-                      style: TextStyle(color: greyText.withOpacity(0.9), fontSize: 15, fontWeight: FontWeight.w500),
+                    Expanded(
+                      child: Text(
+                        location,
+                        style: TextStyle(
+                          color: greyText.withOpacity(0.9),
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),
-                
                 const SizedBox(height: 10),
-                
                 Row(
                   children: [
-                    Icon(Icons.access_time, size: 20, color: greyText.withOpacity(0.8)),
+                    Icon(
+                      Icons.access_time,
+                      size: 20,
+                      color: greyText.withOpacity(0.8),
+                    ),
                     const SizedBox(width: 10),
                     Text(
                       time,
-                      style: TextStyle(color: greyText.withOpacity(0.9), fontSize: 15, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        color: greyText.withOpacity(0.9),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
-                
                 const SizedBox(height: 24),
-                
                 SizedBox(
                   width: double.infinity,
                   height: 54,
                   child: ElevatedButton(
-                    onPressed: isClosed ? null : () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const ClientsDetailsScreen()),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              ClientsDetailsScreen(alertId: alertId),
+                        ),
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isDetailsActive ? primaryDarkRed : const Color(0xFFFDE6ED),
-                      foregroundColor: isDetailsActive ? Colors.white : primaryDarkRed,
+                      backgroundColor: status == "PENDING"
+                          ? primaryDarkRed
+                          : const Color(0xFFFDE6ED),
+                      foregroundColor: status == "PENDING"
+                          ? Colors.white
+                          : primaryDarkRed,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(27),
                       ),
                     ),
-                    child: Text(
-                      isClosed ? "Closed" : "View Details",
-                      style: const TextStyle(
+                    child: const Text(
+                      "View Details",
+                      style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
                       ),
