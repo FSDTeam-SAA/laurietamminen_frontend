@@ -74,135 +74,140 @@ class _ClientSettingsPageState extends State<ClientSettingsPage> {
       body: SafeArea(
         child: _isLoading 
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-          child: Column(
-            children: [
-              // Header
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.close, color: darkText, size: 28),
-                      onPressed: () {},
-                    ),
-                    Text(
-                      "Settings",
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: darkText,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {},
-                      child: Text(
-                        "Save",
-                        style: TextStyle(
-                          color: primaryDarkRed,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              const SizedBox(height: 20),
-              
-              // Profile Section
-              Center(
+          : RefreshIndicator(
+              color: primaryDarkRed,
+              onRefresh: _fetchProfile,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 child: Column(
                   children: [
-                    Stack(
-                      alignment: Alignment.bottomRight,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: const Color(0xFFF0D5DD), width: 2),
+                    // Header
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.close, color: darkText, size: 28),
+                            onPressed: () {},
                           ),
-                          child: CircleAvatar(
-                            radius: 60,
-                            backgroundColor: Colors.grey.shade300,
-                            backgroundImage: userProfile?['profile_picture_url'] != null && userProfile?['profile_picture_url'] != ""
-                                ? NetworkImage(userProfile!['profile_picture_url'])
-                                : const NetworkImage('https://i.pravatar.cc/300'),
+                          Text(
+                            "Settings",
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: darkText,
+                            ),
                           ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFEEAEF),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
+                          TextButton(
+                            onPressed: () {},
+                            child: Text(
+                              "Save",
+                              style: TextStyle(
+                                color: primaryDarkRed,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
-                          child: Icon(Icons.verified, color: primaryDarkRed, size: 20),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      userProfile?['full_name'] ?? "Laurie Schamber",
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: darkText,
+                        ],
                       ),
                     ),
-                    Text(
-                      userProfile?['email'] ?? "elena.vitality@wellness.com",
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: greyText,
+                    
+                    const SizedBox(height: 20),
+                    
+                    // Profile Section
+                    Center(
+                      child: Column(
+                        children: [
+                          Stack(
+                            alignment: Alignment.bottomRight,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: const Color(0xFFF0D5DD), width: 2),
+                                ),
+                                child: CircleAvatar(
+                                  radius: 60,
+                                  backgroundColor: Colors.grey.shade300,
+                                  backgroundImage: userProfile?['profile_picture_url'] != null && userProfile?['profile_picture_url'] != ""
+                                      ? NetworkImage(userProfile!['profile_picture_url'])
+                                      : const NetworkImage('https://i.pravatar.cc/300'),
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFEEAEF),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 2),
+                                ),
+                                child: Icon(Icons.verified, color: primaryDarkRed, size: 20),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            userProfile?['full_name'] ?? "Laurie Schamber",
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: darkText,
+                            ),
+                          ),
+                          Text(
+                            userProfile?['email'] ?? "elena.vitality@wellness.com",
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: greyText,
+                            ),
+                          ),
+                        ],
                       ),
+                    ),
+                    
+                    const SizedBox(height: 30),
+                    
+                    // Menu Items
+                    _buildMenuItem(
+                      icon: Icons.person_outline,
+                      title: "Personal Information",
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ClientEditProfilePage()),
+                        );
+                        _fetchProfile(); // Refresh on back
+                      },
+                      trailing: Icon(Icons.chevron_right, color: darkText),
+                    ),
+                    _buildMenuItem(
+                      icon: Icons.location_on_outlined,
+                      title: "Location Permissions",
+                      trailing: Switch(
+                        value: locationEnabled,
+                        onChanged: (val) => setState(() => locationEnabled = val),
+                        activeColor: primaryDarkRed,
+                        activeTrackColor: primaryDarkRed.withOpacity(0.5),
+                      ),
+                    ),
+                    _buildMenuItem(
+                      icon: Icons.privacy_tip_outlined,
+                      title: "Our Privacy Policy",
+                      onTap: () {},
+                    ),
+                    _buildMenuItem(
+                      icon: Icons.logout,
+                      title: "Log Out",
+                      onTap: _handleLogout,
                     ),
                   ],
                 ),
               ),
-              
-              const SizedBox(height: 30),
-              
-              // Menu Items
-              _buildMenuItem(
-                icon: Icons.person_outline,
-                title: "Personal Information",
-                onTap: () async {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ClientEditProfilePage()),
-                  );
-                  _fetchProfile(); // Refresh on back
-                },
-                trailing: Icon(Icons.chevron_right, color: darkText),
-              ),
-              _buildMenuItem(
-                icon: Icons.location_on_outlined,
-                title: "Location Permissions",
-                trailing: Switch(
-                  value: locationEnabled,
-                  onChanged: (val) => setState(() => locationEnabled = val),
-                  activeColor: primaryDarkRed,
-                  activeTrackColor: primaryDarkRed.withOpacity(0.5),
-                ),
-              ),
-              _buildMenuItem(
-                icon: Icons.privacy_tip_outlined,
-                title: "Our Privacy Policy",
-                onTap: () {},
-              ),
-              _buildMenuItem(
-                icon: Icons.logout,
-                title: "Log Out",
-                onTap: _handleLogout,
-              ),
-            ],
-          ),
+            ),
         ),
-      ),
     );
   }
 
