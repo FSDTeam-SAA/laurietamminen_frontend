@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import '../Authentication/login.dart';
 import '../services/api_service.dart';
 
@@ -258,6 +260,9 @@ class _ClientEditProfilePageState extends State<ClientEditProfilePage> {
   final TextEditingController _dobController = TextEditingController();
   final TextEditingController _heightController = TextEditingController();
   final TextEditingController _weightController = TextEditingController();
+  
+  String? _profilePictureUrl;
+  File? _selectedImage;
   bool _isLoading = true;
   bool _isSaving = false;
 
@@ -278,6 +283,7 @@ class _ClientEditProfilePageState extends State<ClientEditProfilePage> {
           _dobController.text = data['date_of_birth']?.toString().split('T')[0] ?? '';
           _heightController.text = data['height']?.toString() ?? '';
           _weightController.text = data['weight']?.toString() ?? '';
+          _profilePictureUrl = data['profile_picture_url'];
           _isLoading = false;
         });
       }
@@ -286,16 +292,28 @@ class _ClientEditProfilePageState extends State<ClientEditProfilePage> {
     }
   }
 
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    
+    if (image != null) {
+      setState(() {
+        _selectedImage = File(image.path);
+      });
+    }
+  }
+
   Future<void> _saveProfile() async {
     setState(() => _isSaving = true);
     try {
-      final result = await ApiService.updateProfile({
-        'full_name': _fullNameController.text,
-        'email': _emailController.text,
-        'date_of_birth': _dobController.text,
-        'height': double.tryParse(_heightController.text),
-        'weight': double.tryParse(_weightController.text),
-      });
+      final result = await ApiService.updateProfileWithImage(
+        fullName: _fullNameController.text,
+        email: _emailController.text,
+        dob: _dobController.text,
+        height: double.tryParse(_heightController.text),
+        weight: double.tryParse(_weightController.text),
+        imagePath: _selectedImage?.path,
+      );
 
       if (mounted) {
         if (result['success'] == true) {
@@ -383,23 +401,30 @@ class _ClientEditProfilePageState extends State<ClientEditProfilePage> {
                           child: CircleAvatar(
                             radius: 65,
                             backgroundColor: Colors.black87,
-                            backgroundImage: const NetworkImage('https://i.pravatar.cc/300'),
+                            backgroundImage: _selectedImage != null 
+                              ? FileImage(_selectedImage!)
+                              : (_profilePictureUrl != null && _profilePictureUrl != ""
+                                  ? NetworkImage(_profilePictureUrl!)
+                                  : const NetworkImage('https://i.pravatar.cc/300')) as ImageProvider,
                           ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: primaryDarkRed,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
+                        GestureDetector(
+                          onTap: _pickImage,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: primaryDarkRed,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                            child: const Icon(Icons.edit, color: Colors.white, size: 18),
                           ),
-                          child: const Icon(Icons.edit, color: Colors.white, size: 18),
                         ),
                       ],
                     ),
                     const SizedBox(height: 12),
                     TextButton(
-                      onPressed: () {},
+                      onPressed: _pickImage,
                       child: Text(
                         "Change Photo",
                         style: TextStyle(

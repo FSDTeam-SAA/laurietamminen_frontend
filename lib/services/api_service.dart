@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http_parser/http_parser.dart';
 
 class ApiService {
   static const String baseUrl = 'http://10.0.2.2:5000/api'; // Removed /v1 as per backend routes
@@ -130,17 +131,36 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  // Update Profile
-  static Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> data) async {
+  // Update Profile with Image
+  static Future<Map<String, dynamic>> updateProfileWithImage({
+    String? fullName,
+    String? email,
+    String? dob,
+    double? height,
+    double? weight,
+    String? imagePath,
+  }) async {
     final token = await getAccessToken();
-    final response = await http.patch(
-      Uri.parse('$baseUrl/users/profile'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode(data),
-    );
+    var request = http.MultipartRequest('PATCH', Uri.parse('$baseUrl/users/profile'));
+    
+    request.headers['Authorization'] = 'Bearer $token';
+
+    if (fullName != null) request.fields['full_name'] = fullName;
+    if (email != null) request.fields['email'] = email;
+    if (dob != null) request.fields['date_of_birth'] = dob;
+    if (height != null) request.fields['height'] = height.toString();
+    if (weight != null) request.fields['weight'] = weight.toString();
+
+    if (imagePath != null) {
+      request.files.add(await http.MultipartFile.fromPath(
+        'profile_picture',
+        imagePath,
+        contentType: MediaType('image', imagePath.split('.').last),
+      ));
+    }
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
     return jsonDecode(response.body);
   }
 
