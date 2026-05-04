@@ -118,7 +118,7 @@ class _HomeContentState extends State<_HomeContent> {
     }
 
     final String fullName = userProfile?['full_name'] ?? "User";
-    final int stepGoal = userProfile?['step_goal'] ?? 10000;
+    final int stepGoal = userProfile?['step_goal'] ?? 0;
 
     return SafeArea(
       child: RefreshIndicator(
@@ -237,7 +237,7 @@ class _HomeContentState extends State<_HomeContent> {
                           text: TextSpan(
                             children: [
                               TextSpan(
-                                text: "${stepGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
+                                text: "$todaySteps",
                                 style: const TextStyle(
                                   fontSize: 64,
                                   fontWeight: FontWeight.bold,
@@ -245,7 +245,7 @@ class _HomeContentState extends State<_HomeContent> {
                                 ),
                               ),
                               TextSpan(
-                                text: "/$todaySteps",
+                                text: "/${stepGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
                                 style: const TextStyle(
                                   fontSize: 32,
                                   fontWeight: FontWeight.bold,

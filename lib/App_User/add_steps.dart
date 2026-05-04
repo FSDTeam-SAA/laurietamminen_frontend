@@ -19,7 +19,7 @@ class _AddStepsPageState extends State<AddStepsPage> {
   bool _isLoading = true;
   bool _isSaving = false;
   int todaySteps = 0;
-  int stepGoal = 10000;
+  int stepGoal = 0;
   String? lastEntryTime;
 
   @override
@@ -42,7 +42,7 @@ class _AddStepsPageState extends State<AddStepsPage> {
       final result = await ApiService.getProfile();
       if (mounted && result['success'] == true) {
         setState(() {
-          stepGoal = result['data']['step_goal'] ?? 10000;
+          stepGoal = result['data']['step_goal'] ?? 0;
         });
       }
     } catch (e) {
@@ -68,8 +68,8 @@ class _AddStepsPageState extends State<AddStepsPage> {
   Future<void> _confirmSteps() async {
     if (_stepsController.text.isEmpty) return;
     
-    final steps = int.tryParse(_stepsController.text);
-    if (steps == null || steps <= 0) {
+    final inputSteps = int.tryParse(_stepsController.text);
+    if (inputSteps == null || inputSteps <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a valid number of steps')),
       );
@@ -78,14 +78,17 @@ class _AddStepsPageState extends State<AddStepsPage> {
 
     setState(() => _isSaving = true);
     try {
-      final result = await ApiService.confirmSteps(steps);
+      // Logic: Add new steps to existing today's steps
+      final newTotal = todaySteps + inputSteps;
+      final result = await ApiService.confirmSteps(newTotal);
+      
       if (mounted) {
         if (result['success'] == true) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Steps added successfully!')),
           );
           _stepsController.clear();
-          _fetchInitialData(); // Refresh data
+          _fetchInitialData(); // Refresh data to show new total
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(result['message'] ?? 'Failed to add steps')),
@@ -161,7 +164,7 @@ class _AddStepsPageState extends State<AddStepsPage> {
                       text: TextSpan(
                         children: [
                           TextSpan(
-                            text: "${stepGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
+                            text: "$todaySteps",
                             style: TextStyle(
                               fontSize: 64,
                               fontWeight: FontWeight.bold,
@@ -169,7 +172,7 @@ class _AddStepsPageState extends State<AddStepsPage> {
                             ),
                           ),
                           TextSpan(
-                            text: "/$todaySteps",
+                            text: "/${stepGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
                             style: TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,

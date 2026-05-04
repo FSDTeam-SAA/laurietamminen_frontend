@@ -20,7 +20,7 @@ class _ProgressPageState extends State<ProgressPage> {
   bool _isLoading = true;
   bool _isSaving = false;
   int todaySteps = 0;
-  int stepGoal = 10000;
+  int stepGoal = 0;
   List<double> weeklySteps = [0, 0, 0, 0, 0, 0, 0];
   double maxWeeklySteps = 10000;
 
@@ -45,7 +45,7 @@ class _ProgressPageState extends State<ProgressPage> {
       final result = await ApiService.getProfile();
       if (mounted && result['success'] == true) {
         setState(() {
-          stepGoal = result['data']['step_goal'] ?? 10000;
+          stepGoal = result['data']['step_goal'] ?? 0;
         });
       }
     } catch (e) {
@@ -284,7 +284,7 @@ class _ProgressPageState extends State<ProgressPage> {
                           text: TextSpan(
                             children: [
                               TextSpan(
-                                text: "${stepGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
+                                text: "$todaySteps",
                                 style: TextStyle(
                                   fontSize: 68,
                                   fontWeight: FontWeight.bold,
@@ -292,7 +292,7 @@ class _ProgressPageState extends State<ProgressPage> {
                                 ),
                               ),
                               TextSpan(
-                                text: "/$todaySteps",
+                                text: "/${stepGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
                                 style: TextStyle(
                                   fontSize: 36,
                                   fontWeight: FontWeight.bold,
