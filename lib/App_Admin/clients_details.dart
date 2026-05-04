@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../services/api_service.dart';
 import 'dart:async';
+import 'package:url_launcher/url_launcher.dart';
 
 class ClientsDetailsScreen extends StatefulWidget {
   final String alertId;
@@ -67,6 +68,63 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
       }
     } catch (e) {
       debugPrint("Error updating location: $e");
+    }
+  }
+
+  Future<void> _makeCall() async {
+    String? phoneNumber = _alertData?['phone_number']?.toString();
+    if (phoneNumber != null && phoneNumber.isNotEmpty) {
+      // Remove spaces or parentheses that might break the URI
+      phoneNumber = phoneNumber.replaceAll(RegExp(r'\s+'), '');
+      
+      final Uri launchUri = Uri(
+        scheme: 'tel',
+        path: phoneNumber,
+      );
+      
+      try {
+        await launchUrl(launchUri, mode: LaunchMode.externalApplication);
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Could not launch dialer: $e")),
+          );
+        }
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Phone number not found")),
+        );
+      }
+    }
+  }
+
+  Future<void> _sendMessage() async {
+    String? phoneNumber = _alertData?['phone_number']?.toString();
+    if (phoneNumber != null && phoneNumber.isNotEmpty) {
+      phoneNumber = phoneNumber.replaceAll(RegExp(r'\s+'), '');
+      
+      final Uri launchUri = Uri(
+        scheme: 'sms',
+        path: phoneNumber,
+      );
+      
+      try {
+        await launchUrl(launchUri, mode: LaunchMode.externalApplication);
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Could not launch messages app: $e")),
+          );
+        }
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Phone number not found")),
+        );
+      }
     }
   }
 
@@ -222,7 +280,7 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
                         icon: Icons.phone,
                         bgColor: primaryDarkRed,
                         textColor: Colors.white,
-                        onTap: () {},
+                        onTap: _makeCall,
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -232,7 +290,7 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
                         icon: Icons.chat_bubble_outline,
                         bgColor: softPink,
                         textColor: primaryDarkRed,
-                        onTap: () {},
+                        onTap: _sendMessage,
                       ),
                     ),
                   ],
