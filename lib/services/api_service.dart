@@ -13,10 +13,30 @@ class ApiService {
     await prefs.setString('refresh_token', refreshToken);
   }
 
+  // Save user role
+  static Future<void> saveUserRole(String role) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_role', role);
+  }
+
   // Get tokens
   static Future<String?> getAccessToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('access_token');
+  }
+
+  // Get user role
+  static Future<String?> getUserRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('user_role');
+  }
+
+  // Clear session (Logout)
+  static Future<void> clearSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('access_token');
+    await prefs.remove('refresh_token');
+    await prefs.remove('user_role');
   }
 
   // Register
@@ -58,6 +78,7 @@ class ApiService {
     final data = jsonDecode(response.body);
     if (data['success'] == true) {
       await saveTokens(data['data']['access_token'], data['data']['refresh_token']);
+      await saveUserRole(data['data']['user']['role']);
     }
     return data;
   }
