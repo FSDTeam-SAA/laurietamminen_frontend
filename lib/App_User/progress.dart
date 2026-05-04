@@ -22,6 +22,7 @@ class _ProgressPageState extends State<ProgressPage> {
   int todaySteps = 0;
   int stepGoal = 0;
   List<double> weeklySteps = [0, 0, 0, 0, 0, 0, 0];
+  List<String> dayLabels = ["", "", "", "", "", "", ""];
   double maxWeeklySteps = 10000;
 
   @override
@@ -72,20 +73,40 @@ class _ProgressPageState extends State<ProgressPage> {
       if (mounted && result['success'] == true) {
         final List<dynamic> data = result['data']?['weekly_activity'] ?? [];
         List<double> steps = [0, 0, 0, 0, 0, 0, 0];
-        double currentMax = 10000;
+        List<String> labels = ["", "", "", "", "", "", ""];
+        double currentMax = 5000;
 
         for (int i = 0; i < data.length && i < 7; i++) {
           steps[i] = (data[i]['steps'] ?? 0).toDouble();
           if (steps[i] > currentMax) currentMax = steps[i];
+          
+          if (data[i]['date'] != null) {
+            final date = DateTime.parse(data[i]['date']);
+            labels[i] = _getDayName(date.weekday);
+          }
         }
 
         setState(() {
           weeklySteps = steps;
+          dayLabels = labels;
           maxWeeklySteps = currentMax * 1.2;
         });
       }
     } catch (e) {
       debugPrint("Error fetching weekly steps: $e");
+    }
+  }
+
+  String _getDayName(int weekday) {
+    switch (weekday) {
+      case 1: return "Mon";
+      case 2: return "Tue";
+      case 3: return "Wed";
+      case 4: return "Thu";
+      case 5: return "Fri";
+      case 6: return "Sat";
+      case 7: return "Sun";
+      default: return "";
     }
   }
 
@@ -377,7 +398,7 @@ class _ProgressPageState extends State<ProgressPage> {
                                 meta: meta,
                                 space: 10,
                                 child: Text(
-                                  days[index],
+                                  dayLabels[index],
                                   style: TextStyle(
                                     color: greyText,
                                     fontSize: 12,

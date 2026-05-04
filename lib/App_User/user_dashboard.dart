@@ -144,21 +144,30 @@ class _HomeContentState extends State<_HomeContent> {
                       ),
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                    child: CircleAvatar(
-                      radius: 22,
-                      backgroundColor: Colors.grey.shade300,
-                      backgroundImage: userProfile?['profile_picture_url'] != null && userProfile?['profile_picture_url'] != ""
-                          ? NetworkImage(userProfile!['profile_picture_url'])
-                          : null,
-                      child: userProfile?['profile_picture_url'] == null || userProfile?['profile_picture_url'] == ""
-                          ? const Icon(Icons.person, color: Colors.grey, size: 30)
-                          : null,
+                  GestureDetector(
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const EditProfilePage()),
+                      );
+                      _fetchInitialData(); // Refresh data when returning
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: CircleAvatar(
+                        radius: 22,
+                        backgroundColor: Colors.grey.shade300,
+                        backgroundImage: userProfile?['profile_picture_url'] != null && userProfile?['profile_picture_url'] != ""
+                            ? NetworkImage(userProfile!['profile_picture_url'])
+                            : null,
+                        child: userProfile?['profile_picture_url'] == null || userProfile?['profile_picture_url'] == ""
+                            ? const Icon(Icons.person, color: Colors.grey, size: 30)
+                            : null,
+                      ),
                     ),
                   ),
                 ],
