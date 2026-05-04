@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'clients_notifications.dart';
+import 'logout.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -13,7 +14,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   final List<Widget> _screens = [
     const ClientsNotificationScreen(),
-    const Center(child: Text("Admin Settings Coming Soon")),
+    const AdminSettingsPage(),
   ];
 
   @override

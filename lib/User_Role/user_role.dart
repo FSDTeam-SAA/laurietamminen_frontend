@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../App_User/user_dashboard.dart';
 import '../App_Client_User/user_dashboard.dart';
+import '../App_Admin/admin_dashboard.dart';
 
 class UserRoleScreen extends StatefulWidget {
   const UserRoleScreen({super.key});
@@ -87,8 +88,9 @@ class _UserRoleScreenState extends State<UserRoleScreen> {
                         MaterialPageRoute(builder: (context) => const ClientUserDashboardScreen()),
                       );
                     } else if (selectedRole == 'admin') {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Admin Dashboard coming soon!')),
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
                       );
                     }
                   },

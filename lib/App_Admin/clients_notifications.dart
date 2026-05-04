@@ -7,9 +7,7 @@ class ClientsNotificationScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const Color primaryDarkRed = Color(0xFF800B39);
-    const Color bgColor = Color(0xFFFFF0F5);
-    const Color cardColor = Colors.white;
-    const Color buttonBg = Color(0xFFFDE6ED);
+    const Color bgColor = Color(0xFFFDF5F7);
     const Color darkText = Color(0xFF2B0A16);
     const Color greyText = Color(0xFF8A606A);
 
@@ -20,22 +18,25 @@ class ClientsNotificationScreen extends StatelessWidget {
           children: [
             // AppBar replacement
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    "Clients Notification",
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: primaryDarkRed,
+                  const Expanded(
+                    child: Text(
+                      "Clients Notification",
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: primaryDarkRed,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   Row(
                     children: [
                       _buildHeaderButton("Filter"),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       _buildHeaderButton("Sort"),
                     ],
                   ),
@@ -51,14 +52,14 @@ class ClientsNotificationScreen extends StatelessWidget {
                     context,
                     clientId: "Client-29402",
                     status: "PENDING",
-                    statusColor: const Color(0xFFFFF4D6),
-                    statusTextColor: const Color(0xFFB8860B),
+                    statusColor: const Color(0xFFFDF5E1),
+                    statusTextColor: const Color(0xFFD4A017),
                     location: "Prospect Park, Brooklyn",
                     time: "14:02 Today",
                     mapUrl: "https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/-73.969,40.660,14,0/600x300?access_token=pk.eyJ1IjoiZGVtbyIsImEiOiJjaXpvaHExZ20wMDBqMzJvM2ZqM2ZqM2ZqIn0",
                     isDetailsActive: true,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
                   _buildNotificationCard(
                     context,
                     clientId: "Client-11804",
@@ -70,7 +71,7 @@ class ClientsNotificationScreen extends StatelessWidget {
                     mapUrl: "https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/-73.971,40.665,14,0/600x300?access_token=pk.eyJ1IjoiZGVtbyIsImEiOiJjaXpvaHExZ20wMDBqMzJvM2ZqM2ZqM2ZqIn0",
                     isDetailsActive: false,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
                   _buildNotificationCard(
                     context,
                     clientId: "Client-09433",
@@ -83,7 +84,7 @@ class ClientsNotificationScreen extends StatelessWidget {
                     isDetailsActive: false,
                     isClosed: true,
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
@@ -95,17 +96,17 @@ class ClientsNotificationScreen extends StatelessWidget {
 
   Widget _buildHeaderButton(String text) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: BoxDecoration(
         color: const Color(0xFFFDE6ED),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(30),
       ),
       child: Text(
         text,
         style: const TextStyle(
           color: Color(0xFF8A606A),
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
@@ -130,63 +131,79 @@ class ClientsNotificationScreen extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Map Image
+          // Map Image - Fixed with proper aspect ratio and fit
           ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            child: Image.network(
-              mapUrl,
-              height: 180,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+            child: SizedBox(
+              height: 200,
               width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  height: 180,
-                  color: Colors.grey.shade200,
-                  child: const Icon(Icons.map, size: 50, color: Colors.grey),
-                );
-              },
+              child: Image.network(
+                mapUrl,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Container(
+                    color: Colors.grey[100],
+                    child: const Center(child: CircularProgressIndicator()),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: Colors.grey[200],
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.map_outlined, size: 40, color: Colors.grey[400]),
+                        const SizedBox(height: 8),
+                        Text("Map Preview", style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
           ),
           
           Padding(
-            padding: const EdgeInsets.all(20.0),
+            padding: const EdgeInsets.all(24.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       clientId,
                       style: const TextStyle(
-                        fontSize: 20,
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: darkText,
+                        letterSpacing: -0.5,
                       ),
                     ),
-                    const SizedBox(width: 12),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: statusColor,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
                         status,
                         style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
                           color: statusTextColor,
                         ),
                       ),
@@ -194,37 +211,37 @@ class ClientsNotificationScreen extends StatelessWidget {
                   ],
                 ),
                 
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 
                 Row(
                   children: [
-                    const Icon(Icons.location_on_outlined, size: 18, color: greyText),
-                    const SizedBox(width: 8),
+                    Icon(Icons.location_on_outlined, size: 20, color: greyText.withOpacity(0.8)),
+                    const SizedBox(width: 10),
                     Text(
                       location,
-                      style: const TextStyle(color: greyText, fontSize: 14),
+                      style: TextStyle(color: greyText.withOpacity(0.9), fontSize: 15, fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
                 
-                const SizedBox(height: 6),
+                const SizedBox(height: 10),
                 
                 Row(
                   children: [
-                    const Icon(Icons.access_time, size: 18, color: greyText),
-                    const SizedBox(width: 8),
+                    Icon(Icons.access_time, size: 20, color: greyText.withOpacity(0.8)),
+                    const SizedBox(width: 10),
                     Text(
                       time,
-                      style: const TextStyle(color: greyText, fontSize: 14),
+                      style: TextStyle(color: greyText.withOpacity(0.9), fontSize: 15, fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
                 
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
                 
                 SizedBox(
                   width: double.infinity,
-                  height: 48,
+                  height: 54,
                   child: ElevatedButton(
                     onPressed: isClosed ? null : () {
                       Navigator.push(
@@ -237,13 +254,13 @@ class ClientsNotificationScreen extends StatelessWidget {
                       foregroundColor: isDetailsActive ? Colors.white : primaryDarkRed,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
+                        borderRadius: BorderRadius.circular(27),
                       ),
                     ),
                     child: Text(
                       isClosed ? "Closed" : "View Details",
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 17,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
