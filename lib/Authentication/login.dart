@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import '../App_User/user_dashboard.dart';
+import '../App_Client_User/user_dashboard.dart' as client;
+import '../App_Admin/admin_dashboard.dart' as admin;
 import 'signup.dart';
 import 'forgot_password.dart';
 import '../services/api_service.dart';
@@ -39,9 +41,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (mounted) {
         if (result['success'] == true) {
+          final String role = result['data']['user']['role'];
+          
+          Widget dashboard;
+          if (role == 'admin') {
+            dashboard = const admin.AdminDashboardScreen();
+          } else if (role == 'client') {
+            dashboard = const client.ClientUserDashboardScreen();
+          } else {
+            dashboard = const UserDashboardScreen();
+          }
+
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (context) => const UserDashboardScreen()),
+            MaterialPageRoute(builder: (context) => dashboard),
             (route) => false,
           );
         } else {
