@@ -60,6 +60,13 @@ class _UserRoleScreenState extends State<UserRoleScreen> {
                 subtitle: "Access advanced client features and manage specialized activities.",
                 icon: Icons.business_center_outlined,
               ),
+              const SizedBox(height: 20),
+              _buildRoleCard(
+                roleId: 'admin',
+                title: "Admin",
+                subtitle: "Full system access to manage users, roles, and platform settings.",
+                icon: Icons.admin_panel_settings_outlined,
+              ),
               
               const Spacer(),
               
@@ -74,10 +81,14 @@ class _UserRoleScreenState extends State<UserRoleScreen> {
                         context,
                         MaterialPageRoute(builder: (context) => const UserDashboardScreen()),
                       );
-                    } else {
+                    } else if (selectedRole == 'client') {
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(builder: (context) => const ClientUserDashboardScreen()),
+                      );
+                    } else if (selectedRole == 'admin') {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Admin Dashboard coming soon!')),
                       );
                     }
                   },
