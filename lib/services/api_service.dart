@@ -194,4 +194,44 @@ class ApiService {
     );
     return jsonDecode(response.body);
   }
+
+  // Confirm Steps
+  static Future<Map<String, dynamic>> confirmSteps(int steps) async {
+    final token = await getAccessToken();
+    final response = await http.post(
+      Uri.parse('$baseUrl/steps/confirm'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'steps': steps}),
+    );
+    return jsonDecode(response.body);
+  }
+
+  // Get Today's Steps
+  static Future<Map<String, dynamic>> getTodaySteps() async {
+    final token = await getAccessToken();
+    final response = await http.get(
+      Uri.parse('$baseUrl/steps/today'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+    return jsonDecode(response.body);
+  }
+
+  // Get Weekly Steps
+  static Future<Map<String, dynamic>> getWeeklySteps() async {
+    final token = await getAccessToken();
+    final response = await http.get(
+      Uri.parse('$baseUrl/steps/weekly'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+    return jsonDecode(response.body);
+  }
 }
