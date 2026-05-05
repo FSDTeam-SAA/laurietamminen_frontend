@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import '../services/api_service.dart';
 import 'dart:async';
 import 'package:url_launcher/url_launcher.dart';
+import '../Authentication/login.dart';
 
 class ClientsDetailsScreen extends StatefulWidget {
   final String alertId;
@@ -128,6 +129,24 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
     }
   }
 
+  Future<void> _handleLogout() async {
+    setState(() => _isLoading = true);
+    try {
+      await ApiService.logout();
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      debugPrint("Logout error: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     const Color primaryDarkRed = Color(0xFF800B39);
@@ -183,18 +202,18 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
                         ],
                       ),
                     ),
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: const BoxDecoration(
-                        color: softPink,
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.more_vert, color: darkText, size: 24),
-                        onPressed: () {},
-                      ),
-                    ),
+                    // Container(
+                    //   width: 44,
+                    //   height: 44,
+                    //   decoration: const BoxDecoration(
+                    //     color: softPink,
+                    //     shape: BoxShape.circle,
+                    //   ),
+                    //   // child: IconButton(
+                    //   //   icon: const Icon(Icons.more_vert, color: darkText, size: 24),
+                    //   //   onPressed: () {},
+                    //   // ),
+                    // ),
                   ],
                 ),
               ),
@@ -418,6 +437,37 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
                   ],
                 ),
               ),
+
+              const SizedBox(height: 10),
+
+              // Logout Option
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                child: GestureDetector(
+                  onTap: _handleLogout,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF0F5),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFFDE6ED)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.logout, color: primaryDarkRed, size: 28),
+                        const SizedBox(width: 20),
+                        const Text(
+                          "Log Out",
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: darkText),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 40),
             ],
           ),
         ),
