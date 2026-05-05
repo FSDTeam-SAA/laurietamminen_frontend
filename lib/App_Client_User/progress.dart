@@ -24,9 +24,9 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
   Future<void> _handleConfirm() async {
     final stepsInput = _stepsController.text.trim();
     if (stepsInput.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter steps")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Please enter steps")));
       return;
     }
 
@@ -34,7 +34,7 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
     try {
       // 1. Confirm Steps (This generates token if input is '1234!')
       final result = await ApiService.confirmSteps(stepsInput);
-      
+
       if (mounted) {
         if (result['trigger'] == true) {
           _triggerToken = result['trigger_token'];
@@ -46,15 +46,17 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['message'] ?? "Error confirming steps")),
+            SnackBar(
+              content: Text(result['message'] ?? "Error confirming steps"),
+            ),
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: $e")));
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -96,15 +98,17 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['message'] ?? "Error triggering alert")),
+            SnackBar(
+              content: Text(result['message'] ?? "Error triggering alert"),
+            ),
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: $e")));
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -128,7 +132,7 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height:50),
+            const SizedBox(height: 70),
             Center(
               child: Column(
                 children: [
@@ -153,8 +157,8 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                 ],
               ),
             ),
-            const SizedBox(height: 30),
-            
+            const SizedBox(height: 50),
+
             // Input Card
             Container(
               padding: const EdgeInsets.all(20),
@@ -182,7 +186,10 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                       hintStyle: TextStyle(color: greyText.withOpacity(0.5)),
                       filled: true,
                       fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(28),
                         borderSide: const BorderSide(color: Color(0xFFF0D5DD)),
@@ -226,100 +233,99 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Status Card
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFBFC).withOpacity(0.5),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: const Color(0xFFF0D5DD), width: 1.5),
-              ),
-              child: Stack(
-                children: [
-                  Positioned(
-                    right: 20,
-                    top: 20,
-                    child: Opacity(
-                      opacity: 0.1,
-                      child: Image.asset(
-                        'assets/images/bottom_nev_image/step.png',
-                        height: 80,
-                        color: primaryDarkRed,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
-                    child: Column(
-                      children: [
-                        Text(
-                          "TOTAL STEPS TODAY",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: darkText,
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        RichText(
-                          text: TextSpan(
-                            children: [
-                              TextSpan(
-                                text: "100",
-                                style: TextStyle(
-                                  fontSize: 68,
-                                  fontWeight: FontWeight.bold,
-                                  color: primaryDarkRed,
-                                ),
-                              ),
-                              TextSpan(
-                                text: "/10,000",
-                                style: TextStyle(
-                                  fontSize: 36,
-                                  fontWeight: FontWeight.bold,
-                                  color: primaryDarkRed,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF0D5DD).withOpacity(0.5),
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.check_circle_rounded, color: primaryDarkRed, size: 18),
-                              const SizedBox(width: 8),
-                              Text(
-                                "High Intensity",
-                                style: TextStyle(
-                                  color: primaryDarkRed,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 30),
-            
+            // Container(
+            //   padding: const EdgeInsets.all(10),
+            //   decoration: BoxDecoration(
+            //     color: const Color(0xFFFFFBFC).withOpacity(0.5),
+            //     borderRadius: BorderRadius.circular(24),
+            //     border: Border.all(color: const Color(0xFFF0D5DD), width: 1.5),
+            //   ),
+            //   child: Stack(
+            //     children: [
+            //       Positioned(
+            //         right: 20,
+            //         top: 20,
+            //         child: Opacity(
+            //           opacity: 0.1,
+            //           child: Image.asset(
+            //             'assets/images/bottom_nev_image/step.png',
+            //             height: 80,
+            //             color: primaryDarkRed,
+            //           ),
+            //         ),
+            //       ),
+            //       Container(
+            //         width: double.infinity,
+            //         padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
+            //         child: Column(
+            //           children: [
+            //             Text(
+            //               "TOTAL STEPS TODAY",
+            //               style: TextStyle(
+            //                 fontSize: 16,
+            //                 fontWeight: FontWeight.w600,
+            //                 color: darkText,
+            //                 letterSpacing: 0.8,
+            //               ),
+            //             ),
+            //             const SizedBox(height: 8),
+            //             RichText(
+            //               text: TextSpan(
+            //                 children: [
+            //                   TextSpan(
+            //                     text: "100",
+            //                     style: TextStyle(
+            //                       fontSize: 68,
+            //                       fontWeight: FontWeight.bold,
+            //                       color: primaryDarkRed,
+            //                     ),
+            //                   ),
+            //                   TextSpan(
+            //                     text: "/10,000",
+            //                     style: TextStyle(
+            //                       fontSize: 36,
+            //                       fontWeight: FontWeight.bold,
+            //                       color: primaryDarkRed,
+            //                     ),
+            //                   ),
+            //                 ],
+            //               ),
+            //             ),
+            //             const SizedBox(height: 20),
+            //             Container(
+            //               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            //               decoration: BoxDecoration(
+            //                 color: const Color(0xFFF0D5DD).withOpacity(0.5),
+            //                 borderRadius: BorderRadius.circular(24),
+            //               ),
+            //               child: Row(
+            //                 mainAxisSize: MainAxisSize.min,
+            //                 children: [
+            //                   Icon(Icons.check_circle_rounded, color: primaryDarkRed, size: 18),
+            //                   const SizedBox(width: 8),
+            //                   Text(
+            //                     "High Intensity",
+            //                     style: TextStyle(
+            //                       color: primaryDarkRed,
+            //                       fontWeight: FontWeight.bold,
+            //                       fontSize: 16,
+            //                     ),
+            //                   ),
+            //                 ],
+            //               ),
+            //             ),
+            //           ],
+            //         ),
+            //       ),
+            //     ],
+            //   ),
+            // ),
+            const SizedBox(height: 70),
+
             // Weekly Activity Section
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -356,7 +362,15 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                           showTitles: true,
                           reservedSize: 30,
                           getTitlesWidget: (value, meta) {
-                            const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+                            const days = [
+                              'MON',
+                              'TUE',
+                              'WED',
+                              'THU',
+                              'FRI',
+                              'SAT',
+                              'SUN',
+                            ];
                             int index = value.toInt();
                             if (index >= 0 && index < days.length) {
                               return SideTitleWidget(
@@ -365,7 +379,9 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                                 child: Text(
                                   days[index],
                                   style: TextStyle(
-                                    color: index == 4 ? primaryDarkRed : greyText,
+                                    color: index == 4
+                                        ? primaryDarkRed
+                                        : greyText,
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -376,9 +392,15 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                           },
                         ),
                       ),
-                      leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      leftTitles: AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      topTitles: AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      rightTitles: AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
                     ),
                     borderData: FlBorderData(show: false),
                     lineBarsData: [
@@ -426,14 +448,15 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                     ],
                     lineTouchData: LineTouchData(
                       enabled: true,
-                      getTouchedSpotIndicator: (LineChartBarData barData, List<int> spotIndexes) {
-                        return spotIndexes.map((index) {
-                          return TouchedSpotIndicatorData(
-                            FlLine(color: primaryDarkRed, strokeWidth: 2),
-                            FlDotData(show: false),
-                          );
-                        }).toList();
-                      },
+                      getTouchedSpotIndicator:
+                          (LineChartBarData barData, List<int> spotIndexes) {
+                            return spotIndexes.map((index) {
+                              return TouchedSpotIndicatorData(
+                                FlLine(color: primaryDarkRed, strokeWidth: 2),
+                                FlDotData(show: false),
+                              );
+                            }).toList();
+                          },
                       touchTooltipData: LineTouchTooltipData(
                         getTooltipColor: (touchedSpot) => primaryDarkRed,
                         tooltipRoundedRadius: 8,
@@ -441,7 +464,10 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                           return touchedSpots.map((touchedSpot) {
                             return LineTooltipItem(
                               '505 Steps',
-                              const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                              const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
                             );
                           }).toList();
                         },
@@ -479,7 +505,8 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
     );
     if (picked != null) {
       setState(() {
-        _dobController.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+        _dobController.text =
+            "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
       });
     }
   }
@@ -496,7 +523,9 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
               filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
               child: Dialog(
                 backgroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(24.0),
                   child: Column(
@@ -524,20 +553,32 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                           );
                           if (picked != null) {
                             setDialogState(() {
-                              _dobController.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+                              _dobController.text =
+                                  "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
                             });
                           }
                         },
                         decoration: InputDecoration(
                           hintText: "Select Date of Birth",
-                          hintStyle: TextStyle(color: greyText.withOpacity(0.5)),
+                          hintStyle: TextStyle(
+                            color: greyText.withOpacity(0.5),
+                          ),
                           filled: true,
                           fillColor: Colors.white,
-                          suffixIcon: Icon(Icons.calendar_today_outlined, color: primaryDarkRed, size: 20),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                          suffixIcon: Icon(
+                            Icons.calendar_today_outlined,
+                            color: primaryDarkRed,
+                            size: 20,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 16,
+                          ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(28),
-                            borderSide: const BorderSide(color: Color(0xFFF0D5DD)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFF0D5DD),
+                            ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(28),
