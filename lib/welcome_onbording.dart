@@ -64,17 +64,22 @@ class _WelcomeOnboardingState extends State<WelcomeOnboarding> {
                   });
                 },
                 children: [
-                  // Page 1
                   _buildPage1(),
-                  // Page 2
                   _buildPage2(),
-                  // Page 3
                   _buildPage3(),
-                  // Page 4
                   _buildPage4(),
                 ],
               ),
             ),
+            if (_currentPage < 3) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(3, (index) => _buildDot(index)),
+              ),
+              const SizedBox(height: 30),
+              _buildNextButton(),
+              const SizedBox(height: 40),
+            ],
           ],
         ),
       ),
@@ -99,14 +104,7 @@ class _WelcomeOnboardingState extends State<WelcomeOnboarding> {
             style: TextStyle(color: greyText, fontSize: 16, height: 1.5),
           ),
         ),
-        const SizedBox(height: 30),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(3, (index) => _buildDot(index)),
-        ),
-        const SizedBox(height: 30),
-        _buildNextButton(),
-        const SizedBox(height: 40),
+        const Spacer(),
       ],
     );
   }
@@ -139,13 +137,6 @@ class _WelcomeOnboardingState extends State<WelcomeOnboarding> {
           ),
         ),
         const Spacer(),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(3, (index) => _buildDot(index)),
-        ),
-        const SizedBox(height: 30),
-        _buildNextButton(),
-        const SizedBox(height: 40),
       ],
     );
   }
@@ -178,13 +169,6 @@ class _WelcomeOnboardingState extends State<WelcomeOnboarding> {
           ),
         ),
         const Spacer(),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(3, (index) => _buildDot(index)),
-        ),
-        const SizedBox(height: 30),
-        _buildNextButton(),
-        const SizedBox(height: 40),
       ],
     );
   }
