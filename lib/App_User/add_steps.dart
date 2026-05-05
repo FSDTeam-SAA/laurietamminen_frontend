@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import 'package:intl/intl.dart';
 
 class AddStepsPage extends StatefulWidget {
   const AddStepsPage({super.key});
@@ -33,6 +34,7 @@ class _AddStepsPageState extends State<AddStepsPage> {
     await Future.wait([
       _fetchProfile(),
       _fetchTodaySteps(),
+      _fetchLatestActivity(),
     ]);
     if (mounted) setState(() => _isLoading = false);
   }
@@ -56,12 +58,43 @@ class _AddStepsPageState extends State<AddStepsPage> {
       if (mounted && result['success'] == true) {
         setState(() {
           todaySteps = result['data']?['steps'] ?? 0;
-          // Optionally set lastEntryTime if available in backend
-          // lastEntryTime = result['data']['last_entry']; 
         });
       }
     } catch (e) {
       debugPrint("Error fetching steps: $e");
+    }
+  }
+
+  Future<void> _fetchLatestActivity() async {
+    try {
+      final result = await ApiService.getActivities();
+      if (mounted && result['success'] == true) {
+        final List activities = result['data'] ?? [];
+        if (activities.isNotEmpty) {
+          final latest = activities.first;
+          final DateTime entryTime = DateTime.parse(latest['entry_time']).toLocal();
+          final DateTime now = DateTime.now();
+          
+          String formattedTime;
+          if (entryTime.year == now.year && entryTime.month == now.month && entryTime.day == now.day) {
+            formattedTime = "Today, ${DateFormat('h:mm a').format(entryTime)}";
+          } else if (entryTime.year == now.year && entryTime.month == now.month && entryTime.day == now.subtract(const Duration(days: 1)).day) {
+            formattedTime = "Yesterday, ${DateFormat('h:mm a').format(entryTime)}";
+          } else {
+            formattedTime = DateFormat('MMM d, h:mm a').format(entryTime);
+          }
+
+          setState(() {
+            lastEntryTime = formattedTime;
+          });
+        } else {
+          setState(() {
+            lastEntryTime = "No entries yet";
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching activities: $e");
     }
   }
 
@@ -78,17 +111,36 @@ class _AddStepsPageState extends State<AddStepsPage> {
 
     setState(() => _isSaving = true);
     try {
-      // Logic: Add new steps to existing today's steps
-      final newTotal = todaySteps + inputSteps;
-      final result = await ApiService.confirmSteps(newTotal);
+      final String input = _stepsController.text.trim();
+      final inputSteps = double.tryParse(input);
+      Map<String, dynamic> result;
+
+      if (inputSteps == null) {
+        // Assume it might be a secret trigger
+        result = await ApiService.confirmSteps(input);
+      } else {
+        // Normal numeric input: create an activity
+        final newTotal = todaySteps + inputSteps;
+        result = await ApiService.createActivity(
+          category: isWalking ? "walking" : "running",
+          steps: newTotal,
+        );
+      }
       
       if (mounted) {
         if (result['success'] == true) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Steps added successfully!')),
-          );
+          if (result['trigger'] == true) {
+            // Handle secret trigger (show token or something)
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Trigger activated! Token: ${result['trigger_token']}')),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Steps added successfully!')),
+            );
+          }
           _stepsController.clear();
-          _fetchInitialData(); // Refresh data to show new total
+          _fetchInitialData(); // Refresh data
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(result['message'] ?? 'Failed to add steps')),

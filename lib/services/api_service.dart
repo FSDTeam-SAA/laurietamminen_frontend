@@ -346,4 +346,41 @@ class ApiService {
     );
     return jsonDecode(response.body);
   }
+
+  // Get Activities
+  static Future<Map<String, dynamic>> getActivities() async {
+    final token = await getAccessToken();
+    final response = await http.get(
+      Uri.parse('$baseUrl/activities'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+    return jsonDecode(response.body);
+  }
+
+  // Create Activity
+  static Future<Map<String, dynamic>> createActivity({
+    required String category,
+    required double steps,
+    String? notes,
+    String? entryTime,
+  }) async {
+    final token = await getAccessToken();
+    final response = await http.post(
+      Uri.parse('$baseUrl/activities'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'category': category,
+        'steps': steps,
+        'notes': notes ?? '',
+        'entry_time': entryTime ?? DateTime.now().toUtc().toIso8601String(),
+      }),
+    );
+    return jsonDecode(response.body);
+  }
 }

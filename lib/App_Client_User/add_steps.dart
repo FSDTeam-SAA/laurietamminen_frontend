@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
+import 'package:intl/intl.dart';
 
 class ClientAddStepsPage extends StatefulWidget {
   const ClientAddStepsPage({super.key});
@@ -13,16 +15,159 @@ class _ClientAddStepsPageState extends State<ClientAddStepsPage> {
   final Color darkText = const Color(0xFF2B0A16);
   final Color greyText = const Color(0xFF8A606A);
   
+  final TextEditingController _stepsController = TextEditingController();
   bool isWalking = true;
+  bool _isLoading = true;
+  bool _isSaving = false;
+  int todaySteps = 0;
+  int stepGoal = 0;
+  String? lastEntryTime;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchInitialData();
+  }
+
+  Future<void> _fetchInitialData() async {
+    setState(() => _isLoading = true);
+    await Future.wait([
+      _fetchProfile(),
+      _fetchTodaySteps(),
+      _fetchLatestActivity(),
+    ]);
+    if (mounted) setState(() => _isLoading = false);
+  }
+
+  Future<void> _fetchProfile() async {
+    try {
+      final result = await ApiService.getProfile();
+      if (mounted && result['success'] == true) {
+        setState(() {
+          stepGoal = result['data']['step_goal'] ?? 0;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching profile: $e");
+    }
+  }
+
+  Future<void> _fetchTodaySteps() async {
+    try {
+      final result = await ApiService.getTodaySteps();
+      if (mounted && result['success'] == true) {
+        setState(() {
+          todaySteps = result['data']?['steps'] ?? 0;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching steps: $e");
+    }
+  }
+
+  Future<void> _fetchLatestActivity() async {
+    try {
+      final result = await ApiService.getActivities();
+      if (mounted && result['success'] == true) {
+        final List activities = result['data'] ?? [];
+        if (activities.isNotEmpty) {
+          final latest = activities.first;
+          final DateTime entryTime = DateTime.parse(latest['entry_time']).toLocal();
+          final DateTime now = DateTime.now();
+          
+          String formattedTime;
+          if (entryTime.year == now.year && entryTime.month == now.month && entryTime.day == now.day) {
+            formattedTime = "Today, ${DateFormat('h:mm a').format(entryTime)}";
+          } else if (entryTime.year == now.year && entryTime.month == now.month && entryTime.day == now.subtract(const Duration(days: 1)).day) {
+            formattedTime = "Yesterday, ${DateFormat('h:mm a').format(entryTime)}";
+          } else {
+            formattedTime = DateFormat('MMM d, h:mm a').format(entryTime);
+          }
+
+          setState(() {
+            lastEntryTime = formattedTime;
+          });
+        } else {
+          setState(() {
+            lastEntryTime = "No entries yet";
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching activities: $e");
+    }
+  }
+
+  Future<void> _confirmSteps() async {
+    if (_stepsController.text.isEmpty) return;
+    
+    final inputSteps = int.tryParse(_stepsController.text);
+    if (inputSteps == null || inputSteps <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid number of steps')),
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      final String input = _stepsController.text.trim();
+      final inputSteps = double.tryParse(input);
+      Map<String, dynamic> result;
+
+      if (inputSteps == null) {
+        // Assume it might be a secret trigger
+        result = await ApiService.confirmSteps(input);
+      } else {
+        // Normal numeric input: create an activity
+        final newTotal = todaySteps + inputSteps;
+        result = await ApiService.createActivity(
+          category: isWalking ? "walking" : "running",
+          steps: newTotal,
+        );
+      }
+      
+      if (mounted) {
+        if (result['success'] == true) {
+          if (result['trigger'] == true) {
+            // Handle secret trigger
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Trigger activated! Token: ${result['trigger_token']}')),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Steps added successfully!')),
+            );
+          }
+          _stepsController.clear();
+          _fetchInitialData();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message'] ?? 'Failed to add steps')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
 
   Future<void> _onRefresh() async {
-    // Simulate data refresh
-    await Future.delayed(const Duration(seconds: 1));
-    if (mounted) setState(() {});
+    await _fetchInitialData();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return Scaffold(
       backgroundColor: Colors.transparent, 
       body: SafeArea(
@@ -76,7 +221,7 @@ class _ClientAddStepsPageState extends State<ClientAddStepsPage> {
                       text: TextSpan(
                         children: [
                           TextSpan(
-                            text: "100",
+                            text: "$todaySteps",
                             style: TextStyle(
                               fontSize: 64,
                               fontWeight: FontWeight.bold,
@@ -84,7 +229,7 @@ class _ClientAddStepsPageState extends State<ClientAddStepsPage> {
                             ),
                           ),
                           TextSpan(
-                            text: "/10,000",
+                            text: "/${stepGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
                             style: TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,
@@ -228,6 +373,8 @@ class _ClientAddStepsPageState extends State<ClientAddStepsPage> {
                       ),
                       const SizedBox(height: 20),
                       TextField(
+                        controller: _stepsController,
+                        keyboardType: TextInputType.number,
                         decoration: InputDecoration(
                           hintText: "Enter steps...",
                           hintStyle: TextStyle(color: greyText.withOpacity(0.5)),
@@ -249,7 +396,7 @@ class _ClientAddStepsPageState extends State<ClientAddStepsPage> {
                         width: double.infinity,
                         height: 56,
                         child: ElevatedButton(
-                          onPressed: () {},
+                          onPressed: _isSaving ? null : _confirmSteps,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryDarkRed,
                             shape: RoundedRectangleBorder(
@@ -257,14 +404,16 @@ class _ClientAddStepsPageState extends State<ClientAddStepsPage> {
                             ),
                             elevation: 0,
                           ),
-                          child: const Text(
-                            "Confirm",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
+                          child: _isSaving
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : const Text(
+                              "Confirm",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
                         ),
                       ),
                     ],
@@ -306,7 +455,7 @@ class _ClientAddStepsPageState extends State<ClientAddStepsPage> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            "Today, 4:20 PM",
+                            lastEntryTime ?? "No entries yet",
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
