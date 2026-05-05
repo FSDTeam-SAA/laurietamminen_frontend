@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import '../services/api_service.dart';
 import '../Authentication/login.dart';
 
@@ -41,61 +39,59 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
     return Scaffold(
       backgroundColor: bgColor,
       body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  "Settings",
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: darkText,
-                  ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Settings",
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: darkText,
                 ),
-                const SizedBox(height: 40),
-                GestureDetector(
-                  onTap: _isLoading ? null : _handleLogout,
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF0F5),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFFDE6ED)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (_isLoading)
-                          const SizedBox(
-                            width: 28,
-                            height: 28,
-                            child: CircularProgressIndicator(
-                              color: primaryDarkRed,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        else ...[
-                          const Icon(Icons.logout, color: primaryDarkRed, size: 28),
-                          const SizedBox(width: 20),
-                          const Text(
-                            "Log Out",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: darkText,
-                            ),
+              ),
+              const SizedBox(height: 40),
+              GestureDetector(
+                onTap: _isLoading ? null : _handleLogout,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF0F5),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFFDE6ED)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (_isLoading)
+                        const SizedBox(
+                          width: 28,
+                          height: 28,
+                          child: CircularProgressIndicator(
+                            color: primaryDarkRed,
+                            strokeWidth: 2,
                           ),
-                        ],
+                        )
+                      else ...[
+                        const Icon(Icons.logout, color: primaryDarkRed, size: 28),
+                        const SizedBox(width: 20),
+                        const Text(
+                          "Log Out",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: darkText,
+                          ),
+                        ),
                       ],
-                    ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
