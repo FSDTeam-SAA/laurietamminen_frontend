@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http_parser/http_parser.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://10.0.2.2:5000/api'; // Removed /v1 as per backend routes
+  static const String baseUrl = 'https://backend-laurietamminen.onrender.com/api';
 
   // Save tokens
   static Future<void> saveTokens(String accessToken, String refreshToken) async {
