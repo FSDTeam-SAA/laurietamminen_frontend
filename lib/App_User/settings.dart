@@ -130,7 +130,10 @@ class _SettingsPageState extends State<SettingsPage> {
                             backgroundColor: Colors.grey.shade300,
                             backgroundImage: userProfile?['profile_picture_url'] != null && userProfile?['profile_picture_url'] != ""
                                 ? NetworkImage(userProfile!['profile_picture_url'])
-                                : const NetworkImage('https://i.pravatar.cc/300'), // Placeholder
+                                : null,
+                            child: userProfile?['profile_picture_url'] == null || userProfile?['profile_picture_url'] == ""
+                                ? Icon(Icons.person, size: 40, color: Colors.grey.shade600)
+                                : null,
                           ),
                         ),
                         Container(
@@ -258,7 +261,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _dobController = TextEditingController();
-  final TextEditingController _heightController = TextEditingController();
+  final TextEditingController _heightFeetController = TextEditingController();
+  final TextEditingController _heightInchesController = TextEditingController();
   final TextEditingController _weightController = TextEditingController();
   
   String? _profilePictureUrl;
@@ -281,8 +285,21 @@ class _EditProfilePageState extends State<EditProfilePage> {
           _fullNameController.text = data['full_name'] ?? '';
           _emailController.text = data['email'] ?? '';
           _dobController.text = data['date_of_birth']?.toString().split('T')[0] ?? '';
-          _heightController.text = data['height']?.toString() ?? '';
-          _weightController.text = data['weight']?.toString() ?? '';
+          
+          // Convert CM to FT/IN
+          if (data['height'] != null) {
+            double cm = double.tryParse(data['height'].toString()) ?? 0;
+            double totalInches = cm / 2.54;
+            _heightFeetController.text = (totalInches / 12).floor().toString();
+            _heightInchesController.text = (totalInches % 12).round().toString();
+          }
+
+          // Convert KG to LBS
+          if (data['weight'] != null) {
+            double kg = double.tryParse(data['weight'].toString()) ?? 0;
+            _weightController.text = (kg * 2.20462).toStringAsFixed(1);
+          }
+
           _profilePictureUrl = data['profile_picture_url'];
           _isLoading = false;
         });
@@ -306,12 +323,21 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Future<void> _saveProfile() async {
     setState(() => _isSaving = true);
     try {
+      // Convert FT/IN back to CM
+      int feet = int.tryParse(_heightFeetController.text) ?? 0;
+      int inches = int.tryParse(_heightInchesController.text) ?? 0;
+      double? heightCm = (feet > 0 || inches > 0) ? ((feet * 12) + inches) * 2.54 : null;
+
+      // Convert LBS back to KG
+      double lbs = double.tryParse(_weightController.text) ?? 0;
+      double? weightKg = lbs > 0 ? lbs / 2.20462 : null;
+
       final result = await ApiService.updateProfileWithImage(
         fullName: _fullNameController.text,
         email: _emailController.text,
         dob: _dobController.text,
-        height: double.tryParse(_heightController.text),
-        weight: double.tryParse(_weightController.text),
+        height: heightCm,
+        weight: weightKg,
         imagePath: _selectedImage?.path,
       );
 
@@ -405,7 +431,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
                               ? FileImage(_selectedImage!)
                               : (_profilePictureUrl != null && _profilePictureUrl != ""
                                   ? NetworkImage(_profilePictureUrl!)
-                                  : const NetworkImage('https://i.pravatar.cc/300')) as ImageProvider,
+                                  : null),
+                            child: _selectedImage == null && (_profilePictureUrl == null || _profilePictureUrl == "")
+                                ? const Icon(Icons.person, size: 45, color: Colors.white70)
+                                : null,
                           ),
                         ),
                         GestureDetector(
@@ -472,10 +501,23 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     ),
                     const SizedBox(height: 16),
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(child: _buildTextField(label: "HEIGHT (CM)", controller: _heightController)),
+                        Expanded(
+                          flex: 2,
+                          child: Row(
+                            children: [
+                              Expanded(child: _buildTextField(label: "HEIGHT (FT)", controller: _heightFeetController, keyboardType: TextInputType.number)),
+                              const SizedBox(width: 8),
+                              Expanded(child: _buildTextField(label: "IN", controller: _heightInchesController, keyboardType: TextInputType.number)),
+                            ],
+                          ),
+                        ),
                         const SizedBox(width: 16),
-                        Expanded(child: _buildTextField(label: "WEIGHT (KG)", controller: _weightController)),
+                        Expanded(
+                          flex: 1,
+                          child: _buildTextField(label: "WEIGHT (LBS)", controller: _weightController, keyboardType: const TextInputType.numberWithOptions(decimal: true)),
+                        ),
                       ],
                     ),
                   ],
@@ -488,7 +530,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  Widget _buildTextField({required String label, required TextEditingController controller, Widget? suffixIcon}) {
+  Widget _buildTextField({required String label, required TextEditingController controller, Widget? suffixIcon, TextInputType? keyboardType}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -504,6 +546,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         const SizedBox(height: 8),
         TextField(
           controller: controller,
+          keyboardType: keyboardType,
           decoration: InputDecoration(
             filled: true,
             fillColor: Colors.white,
