@@ -24,7 +24,7 @@ class _WelcomeOnboardingState extends State<WelcomeOnboarding> {
     _pageController.dispose();
     super.dispose();
   }
-
+// 
   void _nextPage() {
     if (_currentPage < 3) {
       _pageController.animateToPage(

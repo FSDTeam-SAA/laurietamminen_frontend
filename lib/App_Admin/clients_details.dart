@@ -72,6 +72,34 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
     }
   }
 
+  Future<void> _updateStatus(String newStatus) async {
+    setState(() => _isLoading = true);
+    try {
+      final result = await ApiService.updateAlertStatus(widget.alertId, newStatus);
+      if (mounted) {
+        if (result['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Status updated to $newStatus")),
+          );
+          _fetchInitialDetails(); // Refresh data
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error: ${result['message']}")),
+          );
+          setState(() => _isLoading = false);
+        }
+      }
+    } catch (e) {
+      debugPrint("Error updating status: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to update status: $e")),
+        );
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   Future<void> _makeCall() async {
     String? phoneNumber = _alertData?['phone_number']?.toString();
     if (phoneNumber != null && phoneNumber.isNotEmpty) {
@@ -165,13 +193,17 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
     return Scaffold(
       backgroundColor: bgColor,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 20, 24, 20),
+        child: RefreshIndicator(
+          onRefresh: _fetchInitialDetails,
+          color: primaryDarkRed,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 20, 24, 20),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -353,27 +385,44 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: softPink,
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: const BoxDecoration(color: primaryDarkRed, shape: BoxShape.circle),
+                      // Dynamic Status Chip
+                      Builder(
+                        builder: (context) {
+                          final status = (_alertData?['status'] ?? 'pending').toString().toLowerCase();
+                          Color chipBg = const Color(0xFFFFF3E0); // Light Orange
+                          Color chipText = const Color(0xFFFF9800); // Orange
+                          
+                          if (status == "in_progress") {
+                            chipBg = const Color(0xFFFFEBEE); // Light Red/Pink
+                            chipText = const Color(0xFFD32F2F); // Red
+                          } else if (status == "resolved" || status == "closed") {
+                            chipBg = const Color(0xFFE8F5E9); // Light Green
+                            chipText = const Color(0xFF388E3C); // Green
+                          }
+                          
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: chipBg,
+                              borderRadius: BorderRadius.circular(25),
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              "Status: ${_alertData?['status'] ?? 'PENDING'}",
-                              style: const TextStyle(color: primaryDarkRed, fontSize: 13, fontWeight: FontWeight.w900),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(color: chipText, shape: BoxShape.circle),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  "Status: ${status.toUpperCase()}",
+                                  style: TextStyle(color: chipText, fontSize: 13, fontWeight: FontWeight.w900),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          );
+                        }
                       ),
                       const SizedBox(height: 24),
                       const Text(
@@ -417,9 +466,19 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: Column(
                   children: [
-                    _buildStatusButton("Mark In Progress", () {}),
+                    _buildStatusButton(
+                      "Mark In Progress",
+                      _alertData?['status'] == "IN_PROGRESS" || _alertData?['status'] == "RESOLVED"
+                          ? null
+                          : () => _updateStatus("IN_PROGRESS"),
+                    ),
                     const SizedBox(height: 16),
-                    _buildStatusButton("Resolve", () {}),
+                    _buildStatusButton(
+                      "Resolve",
+                      _alertData?['status'] == "RESOLVED"
+                          ? null
+                          : () => _updateStatus("RESOLVED"),
+                    ),
                   ],
                 ),
               ),
@@ -472,8 +531,9 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildOverlayBox({required String title, required String content, IconData? icon, bool isCenter = false}) {
     return Container(
@@ -527,20 +587,24 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
     );
   }
 
-  Widget _buildStatusButton(String label, VoidCallback onTap) {
+  Widget _buildStatusButton(String label, VoidCallback? onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: double.infinity,
         height: 60,
         decoration: BoxDecoration(
-          color: const Color(0xFFFDE6ED),
+          color: onTap == null ? Colors.grey[200] : const Color(0xFFFDE6ED),
           borderRadius: BorderRadius.circular(30),
         ),
         alignment: Alignment.center,
         child: Text(
           label,
-          style: const TextStyle(color: Color(0xFF800B39), fontSize: 17, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: onTap == null ? Colors.grey[500] : const Color(0xFF800B39),
+            fontSize: 17,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );

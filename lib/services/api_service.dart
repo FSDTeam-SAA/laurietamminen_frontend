@@ -257,14 +257,32 @@ class ApiService {
   }
 
   // Get Admin Alerts (For Notifications Screen)
-  static Future<Map<String, dynamic>> getAdminAlerts() async {
+  static Future<Map<String, dynamic>> getAdminAlerts({
+    String filter = 'all',
+    int page = 1,
+    int limit = 10,
+  }) async {
     final token = await getAccessToken();
     final response = await http.get(
-      Uri.parse('$baseUrl/admin/alerts'),
+      Uri.parse('$baseUrl/admin/alerts?filter=${filter.toLowerCase()}&page=$page&limit=$limit'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       },
+    );
+    return jsonDecode(response.body);
+  }
+
+  // Update Alert Status
+  static Future<Map<String, dynamic>> updateAlertStatus(String alertId, String status) async {
+    final token = await getAccessToken();
+    final response = await http.patch(
+      Uri.parse('$baseUrl/admin/alerts/$alertId/status'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'status': status.toLowerCase()}),
     );
     return jsonDecode(response.body);
   }
