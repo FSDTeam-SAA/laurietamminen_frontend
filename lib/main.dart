@@ -4,6 +4,7 @@ import 'services/api_service.dart';
 import 'App_Admin/admin_dashboard.dart' as admin;
 import 'App_Client_User/user_dashboard.dart' as client;
 import 'App_User/user_dashboard.dart' as user;
+import 'services/location_service.dart';
 
 void main() {
   runApp(const MyApp());
@@ -37,7 +38,12 @@ class _AuthWrapperState extends State<AuthWrapper> {
   @override
   void initState() {
     super.initState();
-    _checkAuth();
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    await LocationService.handleLocationPermission();
+    await _checkAuth();
   }
 
   Future<void> _checkAuth() async {

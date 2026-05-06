@@ -66,6 +66,14 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app needs access to location when open to track your steps and journey.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>This app needs access to location even in the background to track your steps accurately.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>This app needs access to location to track your steps and provide accurate journey data.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>This app needs access to motion data to track your steps and activity accurately.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>

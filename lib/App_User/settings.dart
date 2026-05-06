@@ -149,7 +149,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      userProfile?['full_name'] ?? "Laurie Schamber",
+                      userProfile?['full_name'] ?? "User",
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -157,7 +157,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ),
                     Text(
-                      userProfile?['email'] ?? "elena.vitality@wellness.com",
+                      userProfile?['email'] ?? "Loading email...",
                       style: TextStyle(
                         fontSize: 16,
                         color: greyText,

@@ -11,8 +11,8 @@ class OtpVerificationScreen extends StatefulWidget {
 }
 
 class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
-  final List<TextEditingController> _controllers = List.generate(4, (_) => TextEditingController());
-  final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
+  final List<TextEditingController> _controllers = List.generate(6, (_) => TextEditingController());
+  final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
   bool _isLoading = false;
 
   final Color primaryDarkRed = const Color(0xFF800B39);
@@ -34,9 +34,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   Future<void> _handleVerifyOtp() async {
     final otp = _controllers.map((c) => c.text).join();
-    if (otp.length < 4) {
+    if (otp.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter all 4 digits')),
+        const SnackBar(content: Text('Please enter all 6 digits')),
       );
       return;
     }
@@ -101,8 +101,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   Widget _buildOtpBox(int index) {
     return Container(
-      width: 70,
-      height: 70,
+      width: 50,
+      height: 60,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -113,7 +113,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           controller: _controllers[index],
           focusNode: _focusNodes[index],
           onChanged: (value) {
-            if (value.isNotEmpty && index < 3) {
+            if (value.isNotEmpty && index < 5) {
               _focusNodes[index + 1].requestFocus();
             } else if (value.isEmpty && index > 0) {
               _focusNodes[index - 1].requestFocus();
@@ -123,7 +123,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           keyboardType: TextInputType.number,
           maxLength: 1,
           style: const TextStyle(
-            fontSize: 32,
+            fontSize: 24,
             fontWeight: FontWeight.bold,
             color: Colors.black,
           ),
@@ -168,12 +168,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               const SizedBox(height: 40),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildOtpBox(0),
-                  _buildOtpBox(1),
-                  _buildOtpBox(2),
-                  _buildOtpBox(3),
-                ],
+                children: List.generate(6, (index) => _buildOtpBox(index)),
               ),
               const SizedBox(height: 40),
               SizedBox(
