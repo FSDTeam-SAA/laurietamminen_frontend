@@ -319,7 +319,7 @@ class ApiService {
   }) async {
     final token = await getAccessToken();
     final response = await http.get(
-      Uri.parse('$baseUrl/api/admin/alerts?filter=${filter.toLowerCase()}&page=$page&limit=$limit'),
+      Uri.parse('$baseUrl/admin/alerts?filter=${filter.toLowerCase()}&page=$page&limit=$limit'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -332,7 +332,7 @@ class ApiService {
   static Future<Map<String, dynamic>> updateAlertStatus(String alertId, String status) async {
     final token = await getAccessToken();
     final response = await http.patch(
-      Uri.parse('$baseUrl/api/admin/alerts/$alertId/status'),
+      Uri.parse('$baseUrl/admin/alerts/$alertId/status'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -346,7 +346,7 @@ class ApiService {
   static Future<Map<String, dynamic>> getAlertDetail(String alertId) async {
     final token = await getAccessToken();
     final response = await http.get(
-      Uri.parse('$baseUrl/api/admin/alerts/$alertId'),
+      Uri.parse('$baseUrl/admin/alerts/$alertId'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',

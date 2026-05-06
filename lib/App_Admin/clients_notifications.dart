@@ -69,7 +69,7 @@ class _ClientsNotificationScreenState extends State<ClientsNotificationScreen> {
                     child: Text(
                       "Clients Notification",
                       style: TextStyle(
-                        fontSize: 24,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: primaryDarkRed,
                       ),
