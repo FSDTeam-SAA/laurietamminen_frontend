@@ -64,8 +64,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       }
     } catch (e) {
       if (mounted) {
+        String errorMessage = 'Something went wrong. Please try again.';
+        if (e.toString().contains('TimeoutException')) {
+          errorMessage = 'The request timed out. The server might be slow, please try again.';
+        } else if (e.toString().contains('SocketException')) {
+          errorMessage = 'No internet connection or server unreachable.';
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text(errorMessage)),
         );
       }
     } finally {

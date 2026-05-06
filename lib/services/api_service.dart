@@ -1,10 +1,41 @@
+import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http_parser/http_parser.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://backend-laurietamminen.onrender.com/api';
+  static const String baseUrl = 'http://187.77.187.56:5058';
+
+  // Check Server Health
+  static Future<void> checkServerHealth() async {
+    final url = Uri.parse('$baseUrl/api/health');
+    debugPrint("Checking health at: $url");
+    try {
+      final response = await http.get(url).timeout(const Duration(seconds: 10));
+      debugPrint("Health status: ${response.statusCode}");
+      debugPrint("Health body: ${response.body}");
+    } catch (e) {
+      debugPrint("Health check failed: $e");
+    }
+  }
+
+  // Test Connectivity
+  static Future<void> testConnectivity() async {
+    final url = Uri.parse('https://httpbin.org/post');
+    debugPrint("Testing connectivity at: $url");
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'test': 'data'}),
+      ).timeout(const Duration(seconds: 10));
+      debugPrint("Test status: ${response.statusCode}");
+      debugPrint("Test body: ${response.body}");
+    } catch (e) {
+      debugPrint("Test connectivity failed: $e");
+    }
+  }
 
   // Save tokens
   static Future<void> saveTokens(String accessToken, String refreshToken) async {
@@ -51,30 +82,39 @@ class ApiService {
     final String uniqueClientId = "ID_${DateTime.now().millisecondsSinceEpoch}";
 
     final response = await http.post(
-      Uri.parse('$baseUrl/auth/register'),
+      Uri.parse('$baseUrl/api/auth/register'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'full_name': fullName,
         'phone_number': phoneNumber,
-        'email': email,
+        'email': email.trim(),
         'password': password,
         'confirm_password': confirmPassword,
         'client_id': uniqueClientId,
       }),
-    );
+    ).timeout(const Duration(seconds: 60));
     return jsonDecode(response.body);
   }
 
   // Login
   static Future<Map<String, dynamic>> login(String email, String password) async {
+    final url = Uri.parse('$baseUrl/api/auth/login');
+    debugPrint("Hitting URL: $url");
     final response = await http.post(
-      Uri.parse('$baseUrl/auth/login'),
-      headers: {'Content-Type': 'application/json'},
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Flutter/laurietamminen_frontend',
+      },
       body: jsonEncode({
-        'email': email,
+        'email': email.trim(),
         'password': password,
       }),
-    );
+    ).timeout(const Duration(seconds: 60));
+    
+    debugPrint("Response status: ${response.statusCode}");
+    debugPrint("Response body: ${response.body}");
+    
     final data = jsonDecode(response.body);
     if (data['success'] == true) {
       await saveTokens(data['data']['access_token'], data['data']['refresh_token']);
@@ -85,21 +125,36 @@ class ApiService {
 
   // Forgot Password
   static Future<Map<String, dynamic>> forgotPassword(String email) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/auth/forgot-password'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email}),
-    );
-    return jsonDecode(response.body);
+    final url = Uri.parse('$baseUrl/api/auth/forgot-password');
+    debugPrint("Hitting URL: $url");
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Connection': 'keep-alive',
+        },
+        body: jsonEncode({'email': email.trim()}),
+      ).timeout(const Duration(seconds: 60));
+      debugPrint("Response status: ${response.statusCode}");
+      debugPrint("Response body: ${response.body}");
+      return jsonDecode(response.body);
+    } catch (e, stack) {
+      debugPrint("Error in forgotPassword: $e");
+      debugPrint("Stack trace: $stack");
+      rethrow;
+    }
   }
 
   // Verify OTP
   static Future<Map<String, dynamic>> verifyOtp(String email, String otp) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/auth/verify-otp'),
+      Uri.parse('$baseUrl/api/auth/verify-otp'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'otp': otp}),
-    );
+      body: jsonEncode({'email': email.trim(), 'otp': otp.trim()}),
+    ).timeout(const Duration(seconds: 60));
     return jsonDecode(response.body);
   }
 
@@ -110,14 +165,14 @@ class ApiService {
     required String confirmPassword,
   }) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/auth/reset-password'),
+      Uri.parse('$baseUrl/api/auth/reset-password'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
-        'email': email,
+        'email': email.trim(),
         'new_password': newPassword,
         'confirm_password': confirmPassword,
       }),
-    );
+    ).timeout(const Duration(seconds: 60));
     return jsonDecode(response.body);
   }
 
@@ -125,7 +180,7 @@ class ApiService {
   static Future<Map<String, dynamic>> logout() async {
     final token = await getAccessToken();
     final response = await http.post(
-      Uri.parse('$baseUrl/auth/logout'),
+      Uri.parse('$baseUrl/api/auth/logout'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -143,7 +198,7 @@ class ApiService {
   static Future<Map<String, dynamic>> getProfile() async {
     final token = await getAccessToken();
     final response = await http.get(
-      Uri.parse('$baseUrl/users/profile'),
+      Uri.parse('$baseUrl/api/users/profile'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -162,7 +217,7 @@ class ApiService {
     String? imagePath,
   }) async {
     final token = await getAccessToken();
-    var request = http.MultipartRequest('PATCH', Uri.parse('$baseUrl/users/profile'));
+    var request = http.MultipartRequest('PATCH', Uri.parse('$baseUrl/api/users/profile'));
     
     request.headers['Authorization'] = 'Bearer $token';
 
@@ -189,7 +244,7 @@ class ApiService {
   static Future<Map<String, dynamic>> updateStepGoal(int stepGoal) async {
     final token = await getAccessToken();
     final response = await http.patch(
-      Uri.parse('$baseUrl/users/step-goal'),
+      Uri.parse('$baseUrl/api/users/step-goal'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -203,7 +258,7 @@ class ApiService {
   static Future<Map<String, dynamic>> changePassword(String currentPassword, String newPassword) async {
     final token = await getAccessToken();
     final response = await http.patch(
-      Uri.parse('$baseUrl/users/change-password'),
+      Uri.parse('$baseUrl/api/users/change-password'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -220,7 +275,7 @@ class ApiService {
   static Future<Map<String, dynamic>> confirmSteps(dynamic steps) async {
     final token = await getAccessToken();
     final response = await http.post(
-      Uri.parse('$baseUrl/steps/confirm'),
+      Uri.parse('$baseUrl/api/steps/confirm'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -234,7 +289,7 @@ class ApiService {
   static Future<Map<String, dynamic>> getTodaySteps() async {
     final token = await getAccessToken();
     final response = await http.get(
-      Uri.parse('$baseUrl/steps/today'),
+      Uri.parse('$baseUrl/api/steps/today'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -247,7 +302,7 @@ class ApiService {
   static Future<Map<String, dynamic>> getWeeklySteps() async {
     final token = await getAccessToken();
     final response = await http.get(
-      Uri.parse('$baseUrl/steps/weekly'),
+      Uri.parse('$baseUrl/api/steps/weekly'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -264,7 +319,7 @@ class ApiService {
   }) async {
     final token = await getAccessToken();
     final response = await http.get(
-      Uri.parse('$baseUrl/admin/alerts?filter=${filter.toLowerCase()}&page=$page&limit=$limit'),
+      Uri.parse('$baseUrl/api/admin/alerts?filter=${filter.toLowerCase()}&page=$page&limit=$limit'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -277,7 +332,7 @@ class ApiService {
   static Future<Map<String, dynamic>> updateAlertStatus(String alertId, String status) async {
     final token = await getAccessToken();
     final response = await http.patch(
-      Uri.parse('$baseUrl/admin/alerts/$alertId/status'),
+      Uri.parse('$baseUrl/api/admin/alerts/$alertId/status'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -291,7 +346,7 @@ class ApiService {
   static Future<Map<String, dynamic>> getAlertDetail(String alertId) async {
     final token = await getAccessToken();
     final response = await http.get(
-      Uri.parse('$baseUrl/admin/alerts/$alertId'),
+      Uri.parse('$baseUrl/api/admin/alerts/$alertId'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -314,7 +369,7 @@ class ApiService {
   }) async {
     final token = await getAccessToken();
     final response = await http.post(
-      Uri.parse('$baseUrl/alerts/trigger'),
+      Uri.parse('$baseUrl/api/alerts/trigger'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -347,7 +402,7 @@ class ApiService {
   }) async {
     final token = await getAccessToken();
     final response = await http.patch(
-      Uri.parse('$baseUrl/alerts/$alertId/location-update'),
+      Uri.parse('$baseUrl/api/alerts/$alertId/location-update'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -369,7 +424,7 @@ class ApiService {
   static Future<Map<String, dynamic>> getActivities() async {
     final token = await getAccessToken();
     final response = await http.get(
-      Uri.parse('$baseUrl/activities'),
+      Uri.parse('$baseUrl/api/activities'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -387,7 +442,7 @@ class ApiService {
   }) async {
     final token = await getAccessToken();
     final response = await http.post(
-      Uri.parse('$baseUrl/activities'),
+      Uri.parse('$baseUrl/api/activities'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',

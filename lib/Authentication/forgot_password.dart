@@ -20,6 +20,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final Color darkText = const Color(0xFF2B0A16);
   final Color greyText = const Color(0xFF8A606A);
   final Color borderColor = const Color(0xFFE8C5D0);
+  
+  @override
+  void initState() {
+    super.initState();
+    ApiService.checkServerHealth();
+    ApiService.testConnectivity();
+  }
 
   @override
   void dispose() {
@@ -51,8 +58,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       }
     } catch (e) {
       if (mounted) {
+        String errorMessage = 'Something went wrong. Please try again.';
+        if (e.toString().contains('TimeoutException')) {
+          errorMessage = 'The request timed out. The server might be slow, please try again.';
+        } else if (e.toString().contains('SocketException')) {
+          errorMessage = 'No internet connection or server unreachable.';
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text(errorMessage)),
         );
       }
     } finally {
