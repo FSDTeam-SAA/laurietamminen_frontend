@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../Authentication/login.dart';
 import '../services/api_service.dart';
+import 'package:geolocator/geolocator.dart';
 
 class ClientSettingsPage extends StatefulWidget {
   const ClientSettingsPage({super.key});
@@ -24,6 +25,36 @@ class _ClientSettingsPageState extends State<ClientSettingsPage> {
   void initState() {
     super.initState();
     _fetchProfile();
+    _checkLocationStatus();
+  }
+
+  Future<void> _checkLocationStatus() async {
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (mounted) {
+      setState(() {
+        locationEnabled = (permission == LocationPermission.always || permission == LocationPermission.whileInUse);
+      });
+    }
+  }
+
+  Future<void> _handleLocationToggle(bool value) async {
+    if (value) {
+      LocationPermission permission = await Geolocator.checkPermission();
+      
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      
+      if (permission == LocationPermission.deniedForever) {
+        await Geolocator.openAppSettings();
+      }
+      
+      _checkLocationStatus();
+    } else {
+      setState(() {
+        locationEnabled = false;
+      });
+    }
   }
 
   Future<void> _fetchProfile() async {
@@ -85,28 +116,16 @@ class _ClientSettingsPageState extends State<ClientSettingsPage> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          IconButton(
-                            icon: Icon(Icons.close, color: darkText, size: 28),
-                            onPressed: () {},
-                          ),
-                          Text(
-                            "Settings",
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: darkText,
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () {},
-                            child: Text(
-                              "Save",
-                              style: TextStyle(
-                                color: primaryDarkRed,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                          Expanded(
+                            child: Center(
+                              child: Text(
+                                "Settings",
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: darkText,
+                                ),
                               ),
                             ),
                           ),
@@ -191,7 +210,7 @@ class _ClientSettingsPageState extends State<ClientSettingsPage> {
                       title: "Location Permissions",
                       trailing: Switch(
                         value: locationEnabled,
-                        onChanged: (val) => setState(() => locationEnabled = val),
+                        onChanged: _handleLocationToggle,
                         activeColor: primaryDarkRed,
                         activeTrackColor: primaryDarkRed.withOpacity(0.5),
                       ),
