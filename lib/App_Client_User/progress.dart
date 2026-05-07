@@ -132,7 +132,7 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 70),
+            const SizedBox(height: 50),
             Center(
               child: Column(
                 children: [
