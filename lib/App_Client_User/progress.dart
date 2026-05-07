@@ -94,12 +94,12 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
       if (mounted) {
         if (result['success'] == true || result['data'] != null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Alert triggered successfully!")),
+            const SnackBar(content: Text("Thank you for conforming your Birth of Date")),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(result['message'] ?? "Error triggering alert"),
+              content: Text(result['message'] ?? "Birth of Date Dosent Match"),
             ),
           );
         }
