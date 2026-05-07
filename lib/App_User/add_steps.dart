@@ -177,10 +177,10 @@ class _AddStepsPageState extends State<AddStepsPage> {
                 // Header
                 Row(
                   children: [
-                    IconButton(
-                      icon: Icon(Icons.close, color: darkText, size: 28),
-                      onPressed: () {},
-                    ),
+                    // IconButton(
+                    //   icon: Icon(Icons.close, color: darkText, size: 28),
+                    //   onPressed: () {},
+                    // ),
                     Expanded(
                       child: Center(
                         child: Text(
@@ -193,7 +193,7 @@ class _AddStepsPageState extends State<AddStepsPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 48), // Spacer for balance
+                    // const SizedBox(width: 48), // Spacer for balance
                   ],
                 ),
                 
