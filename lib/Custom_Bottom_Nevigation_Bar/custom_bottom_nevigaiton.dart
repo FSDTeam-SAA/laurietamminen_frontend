@@ -21,14 +21,14 @@ class CustomBottomNavigation extends StatelessWidget {
           children: [
             // Top active indicator
             Container(
-              height: 4,
-              width: 40,
+              height: 6,
+              width: 60,
               decoration: BoxDecoration(
                 color: isActive ? Colors.white : Colors.transparent,
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(4)),
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(50)),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Image.asset(
               iconPath,
               height: 24,
