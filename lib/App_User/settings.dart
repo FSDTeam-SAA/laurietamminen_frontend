@@ -360,7 +360,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       final result = await ApiService.updateProfileWithImage(
         fullName: _fullNameController.text,
         email: _emailController.text,
-        dob: _dobController.text,
+        // dob: _dobController.text,
         height: heightCm,
         weight: weightKg,
         imagePath: _selectedImage?.path,
@@ -519,12 +519,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     const SizedBox(height: 16),
                     _buildTextField(label: "EMAIL ADDRESS", controller: _emailController),
                     const SizedBox(height: 16),
-                    _buildTextField(
-                      label: "BIRTH OF DATE",
-                      controller: _dobController,
-                      suffixIcon: Icon(Icons.calendar_today_outlined, color: Colors.grey.shade400, size: 20),
-                    ),
-                    const SizedBox(height: 16),
+                    // _buildTextField(
+                    //   label: "BIRTH OF DATE",
+                    //   controller: _dobController,
+                    //   suffixIcon: Icon(Icons.calendar_today_outlined, color: Colors.grey.shade400, size: 20),
+                    // ),
+                    // const SizedBox(height: 16),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
