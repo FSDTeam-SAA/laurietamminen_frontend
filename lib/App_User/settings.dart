@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../Authentication/login.dart';
 import '../services/api_service.dart';
 import 'package:geolocator/geolocator.dart';
+import '../Privecy_Policy/privecy_policy.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -214,7 +215,12 @@ class _SettingsPageState extends State<SettingsPage> {
               _buildMenuItem(
                 icon: Icons.privacy_tip_outlined,
                 title: "Our Privacy Policy",
-                onTap: () {},
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const PrivacyPolicyPage()),
+                  );
+                },
               ),
               _buildMenuItem(
                 icon: Icons.logout,
