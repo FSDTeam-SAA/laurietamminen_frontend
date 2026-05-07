@@ -62,6 +62,88 @@ class ApiService {
     return prefs.getString('user_role');
   }
 
+  // Get refresh token
+  static Future<String?> getRefreshToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('refresh_token');
+  }
+
+  // Refresh Access Token
+  static Future<bool> refreshAccessToken() async {
+    final refreshToken = await getRefreshToken();
+    if (refreshToken == null) return false;
+
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/refresh-token'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'refresh_token': refreshToken}),
+      ).timeout(const Duration(seconds: 20));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          await saveTokens(data['data']['access_token'], data['data']['refresh_token']);
+          return true;
+        }
+      }
+    } catch (e) {
+      debugPrint("Token refresh failed: $e");
+    }
+    return false;
+  }
+
+  // Generic Authenticated Request with Auto-Refresh
+  static Future<Map<String, dynamic>> _authenticatedRequest(
+    String method,
+    String path, {
+    Map<String, dynamic>? body,
+  }) async {
+    String? token = await getAccessToken();
+    
+    Future<http.Response> makeRequest(String? currentToken) async {
+      final url = Uri.parse('$baseUrl$path');
+      final headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $currentToken',
+      };
+
+      switch (method.toUpperCase()) {
+        case 'GET':
+          return await http.get(url, headers: headers);
+        case 'POST':
+          return await http.post(url, headers: headers, body: body != null ? jsonEncode(body) : null);
+        case 'PATCH':
+          return await http.patch(url, headers: headers, body: body != null ? jsonEncode(body) : null);
+        case 'DELETE':
+          return await http.delete(url, headers: headers);
+        default:
+          throw Exception("Unsupported HTTP method: $method");
+      }
+    }
+
+    var response = await makeRequest(token);
+
+    if (response.statusCode == 401) {
+      debugPrint("Token expired, attempting refresh...");
+      final refreshed = await refreshAccessToken();
+      if (refreshed) {
+        token = await getAccessToken();
+        response = await makeRequest(token);
+      } else {
+        debugPrint("Refresh failed, clearing session.");
+        await clearSession();
+        return {'success': false, 'message': 'Session expired. Please login again.'};
+      }
+    }
+
+    try {
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Invalid response from server'};
+    }
+  }
+
   // Clear session (Logout)
   static Future<void> clearSession() async {
     final prefs = await SharedPreferences.getInstance();
@@ -178,33 +260,14 @@ class ApiService {
 
   // Logout
   static Future<Map<String, dynamic>> logout() async {
-    final token = await getAccessToken();
-    final response = await http.post(
-      Uri.parse('$baseUrl/auth/logout'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
-    if (response.statusCode == 200) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('access_token');
-      await prefs.remove('refresh_token');
-    }
-    return jsonDecode(response.body);
+    final result = await _authenticatedRequest('POST', '/auth/logout');
+    await clearSession(); // Always clear locally
+    return result;
   }
 
   // Get Profile
   static Future<Map<String, dynamic>> getProfile() async {
-    final token = await getAccessToken();
-    final response = await http.get(
-      Uri.parse('$baseUrl/users/profile'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
-    return jsonDecode(response.body);
+    return await _authenticatedRequest('GET', '/users/profile');
   }
 
   // Update Profile with Image
@@ -216,99 +279,75 @@ class ApiService {
     double? weight,
     String? imagePath,
   }) async {
-    final token = await getAccessToken();
-    var request = http.MultipartRequest('PATCH', Uri.parse('$baseUrl/users/profile'));
-    
-    request.headers['Authorization'] = 'Bearer $token';
+    Future<http.Response> makeRequest() async {
+      final token = await getAccessToken();
+      var request = http.MultipartRequest('PATCH', Uri.parse('$baseUrl/users/profile'));
+      request.headers['Authorization'] = 'Bearer $token';
 
-    if (fullName != null) request.fields['full_name'] = fullName;
-    if (email != null) request.fields['email'] = email;
-    if (dob != null) request.fields['date_of_birth'] = dob;
-    if (height != null) request.fields['height'] = height.toString();
-    if (weight != null) request.fields['weight'] = weight.toString();
+      if (fullName != null) request.fields['full_name'] = fullName;
+      if (email != null) request.fields['email'] = email;
+      if (dob != null) request.fields['date_of_birth'] = dob;
+      if (height != null) request.fields['height'] = height.toString();
+      if (weight != null) request.fields['weight'] = weight.toString();
 
-    if (imagePath != null) {
-      request.files.add(await http.MultipartFile.fromPath(
-        'profile_picture',
-        imagePath,
-        contentType: MediaType('image', imagePath.split('.').last),
-      ));
+      if (imagePath != null) {
+        request.files.add(await http.MultipartFile.fromPath(
+          'profile_picture',
+          imagePath,
+          contentType: MediaType('image', imagePath.split('.').last),
+        ));
+      }
+
+      final streamedResponse = await request.send();
+      return await http.Response.fromStream(streamedResponse);
     }
 
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
-    return jsonDecode(response.body);
+    var response = await makeRequest();
+
+    if (response.statusCode == 401) {
+      debugPrint("Token expired during multipart request, attempting refresh...");
+      final refreshed = await refreshAccessToken();
+      if (refreshed) {
+        response = await makeRequest();
+      } else {
+        await clearSession();
+        return {'success': false, 'message': 'Session expired. Please login again.'};
+      }
+    }
+
+    try {
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Invalid response from server'};
+    }
   }
 
   // Update Step Goal
   static Future<Map<String, dynamic>> updateStepGoal(int stepGoal) async {
-    final token = await getAccessToken();
-    final response = await http.patch(
-      Uri.parse('$baseUrl/users/step-goal'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({'step_goal': stepGoal}),
-    );
-    return jsonDecode(response.body);
+    return await _authenticatedRequest('PATCH', '/users/step-goal', body: {'step_goal': stepGoal});
   }
 
   // Change Password
   static Future<Map<String, dynamic>> changePassword(String currentPassword, String newPassword) async {
-    final token = await getAccessToken();
-    final response = await http.patch(
-      Uri.parse('$baseUrl/users/change-password'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'current_password': currentPassword,
-        'new_password': newPassword,
-      }),
-    );
-    return jsonDecode(response.body);
+    return await _authenticatedRequest('PATCH', '/users/change-password', body: {
+      'current_password': currentPassword,
+      'new_password': newPassword,
+    });
   }
 
   // Confirm Steps
   static Future<Map<String, dynamic>> confirmSteps(dynamic steps) async {
-    final token = await getAccessToken();
-    final response = await http.post(
-      Uri.parse('$baseUrl/steps/confirm'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({'steps': steps}),
-    );
-    return jsonDecode(response.body);
+    return await _authenticatedRequest('POST', '/steps/confirm', body: {'steps': steps});
   }
 
   // Get Today's Steps
   static Future<Map<String, dynamic>> getTodaySteps() async {
-    final token = await getAccessToken();
-    final response = await http.get(
-      Uri.parse('$baseUrl/steps/today'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
-    return jsonDecode(response.body);
+    return await _authenticatedRequest('GET', '/steps/today');
   }
 
   // Get Weekly Steps
   static Future<Map<String, dynamic>> getWeeklySteps() async {
-    final token = await getAccessToken();
-    final response = await http.get(
-      Uri.parse('$baseUrl/steps/weekly'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
-    return jsonDecode(response.body);
+    return await _authenticatedRequest('GET', '/steps/weekly');
   }
 
   // Get Admin Alerts (For Notifications Screen)
@@ -317,42 +356,17 @@ class ApiService {
     int page = 1,
     int limit = 10,
   }) async {
-    final token = await getAccessToken();
-    final response = await http.get(
-      Uri.parse('$baseUrl/admin/alerts?filter=${filter.toLowerCase()}&page=$page&limit=$limit'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
-    return jsonDecode(response.body);
+    return await _authenticatedRequest('GET', '/admin/alerts?filter=${filter.toLowerCase()}&page=$page&limit=$limit');
   }
 
   // Update Alert Status
   static Future<Map<String, dynamic>> updateAlertStatus(String alertId, String status) async {
-    final token = await getAccessToken();
-    final response = await http.patch(
-      Uri.parse('$baseUrl/admin/alerts/$alertId/status'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({'status': status.toLowerCase()}),
-    );
-    return jsonDecode(response.body);
+    return await _authenticatedRequest('PATCH', '/admin/alerts/$alertId/status', body: {'status': status.toLowerCase()});
   }
 
   // Get Single Alert Detail (For Admin Detail Screen)
   static Future<Map<String, dynamic>> getAlertDetail(String alertId) async {
-    final token = await getAccessToken();
-    final response = await http.get(
-      Uri.parse('$baseUrl/admin/alerts/$alertId'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
-    return jsonDecode(response.body);
+    return await _authenticatedRequest('GET', '/admin/alerts/$alertId');
   }
 
   // Trigger Alert
@@ -367,26 +381,17 @@ class ApiService {
     String connectionState = "4g",
     String deviceId = "device-001",
   }) async {
-    final token = await getAccessToken();
-    final response = await http.post(
-      Uri.parse('$baseUrl/alerts/trigger'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'trigger_token': triggerToken,
-        'date_of_birth': dateOfBirth,
-        'lat': lat,
-        'lng': lng,
-        'accuracy': accuracy,
-        'street_address': streetAddress,
-        'signal_strength': signalStrength,
-        'connection_state': connectionState,
-        'device_id': deviceId,
-      }),
-    );
-    return jsonDecode(response.body);
+    return await _authenticatedRequest('POST', '/alerts/trigger', body: {
+      'trigger_token': triggerToken,
+      'date_of_birth': dateOfBirth,
+      'lat': lat,
+      'lng': lng,
+      'accuracy': accuracy,
+      'street_address': streetAddress,
+      'signal_strength': signalStrength,
+      'connection_state': connectionState,
+      'device_id': deviceId,
+    });
   }
 
   // Update Alert Location
@@ -400,37 +405,20 @@ class ApiService {
     String connectionState = "wifi",
     String deviceId = "device-001",
   }) async {
-    final token = await getAccessToken();
-    final response = await http.patch(
-      Uri.parse('$baseUrl/alerts/$alertId/location-update'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'lat': lat,
-        'lng': lng,
-        'accuracy': accuracy,
-        'street_address': streetAddress,
-        'signal_strength': signalStrength,
-        'connection_state': connectionState,
-        'device_id': deviceId,
-      }),
-    );
-    return jsonDecode(response.body);
+    return await _authenticatedRequest('PATCH', '/alerts/$alertId/location-update', body: {
+      'lat': lat,
+      'lng': lng,
+      'accuracy': accuracy,
+      'street_address': streetAddress,
+      'signal_strength': signalStrength,
+      'connection_state': connectionState,
+      'device_id': deviceId,
+    });
   }
 
   // Get Activities
   static Future<Map<String, dynamic>> getActivities() async {
-    final token = await getAccessToken();
-    final response = await http.get(
-      Uri.parse('$baseUrl/activities'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
-    return jsonDecode(response.body);
+    return await _authenticatedRequest('GET', '/activities');
   }
 
   // Create Activity
@@ -440,20 +428,11 @@ class ApiService {
     String? notes,
     String? entryTime,
   }) async {
-    final token = await getAccessToken();
-    final response = await http.post(
-      Uri.parse('$baseUrl/activities'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'category': category,
-        'steps': steps,
-        'notes': notes ?? '',
-        'entry_time': entryTime ?? DateTime.now().toUtc().toIso8601String(),
-      }),
-    );
-    return jsonDecode(response.body);
+    return await _authenticatedRequest('POST', '/activities', body: {
+      'category': category,
+      'steps': steps,
+      'notes': notes ?? '',
+      'entry_time': entryTime ?? DateTime.now().toUtc().toIso8601String(),
+    });
   }
 }
