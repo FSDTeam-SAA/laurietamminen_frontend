@@ -42,8 +42,16 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   Future<void> _initializeApp() async {
-    await LocationService.handleLocationPermission();
-    await _checkAuth();
+    try {
+      // Add a small delay to let the emulator/system stabilize
+      await Future.delayed(const Duration(milliseconds: 500));
+      await LocationService.handleLocationPermission();
+      await _checkAuth();
+    } catch (e) {
+      debugPrint("Initialization error: $e");
+      // Still try to check auth even if location fails
+      await _checkAuth();
+    }
   }
 
   Future<void> _checkAuth() async {

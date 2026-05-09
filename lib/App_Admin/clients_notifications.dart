@@ -110,10 +110,13 @@ class _ClientsNotificationScreenState extends State<ClientsNotificationScreen> {
                                 _buildNotificationCard(
                                   context,
                                   alertId: alert['alert_id']?.toString() ?? "",
-                                  clientId: alert['full_name']?.toString() ?? "Unknown Client",
+                                  clientName: alert['full_name']?.toString() ?? "Unknown Client",
+                                  clientId: alert['client_id']?.toString() ?? "ID: N/A",
                                   status: alert['status']?.toString() ?? "pending",
                                   location: alert['street_address']?.toString() ?? "Unknown Location",
-                                  time: "Just Now",
+                                  time: alert['created_at'] != null 
+                                      ? _formatTime(alert['created_at']) 
+                                      : "Just Now",
                                   lat: alert['coordinates']?['lat']?.toDouble() ?? 23.8103,
                                   lng: alert['coordinates']?['lng']?.toDouble() ?? 90.4125,
                                 ),
@@ -187,6 +190,27 @@ class _ClientsNotificationScreenState extends State<ClientsNotificationScreen> {
         );
       },
     );
+  }
+
+  String _formatTime(String? dateStr) {
+    if (dateStr == null) return "Just Now";
+    try {
+      final date = DateTime.parse(dateStr).toLocal();
+      return "${date.day.toString().padLeft(2, '0')} ${_getMonthName(date.month)} ${date.year}, ${_formatHour(date.hour, date.minute)}";
+    } catch (e) {
+      return "Just Now";
+    }
+  }
+
+  String _getMonthName(int month) {
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return months[month - 1];
+  }
+
+  String _formatHour(int hour, int minute) {
+    final period = hour >= 12 ? "PM" : "AM";
+    final h = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+    return "${h.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} $period";
   }
 
   void _showSortMenu() {
@@ -266,6 +290,7 @@ class _ClientsNotificationScreenState extends State<ClientsNotificationScreen> {
   Widget _buildNotificationCard(
     BuildContext context, {
     required String alertId,
+    required String clientName,
     required String clientId,
     required String status,
     required String location,
@@ -351,15 +376,28 @@ class _ClientsNotificationScreenState extends State<ClientsNotificationScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
-                      child: Text(
-                        clientId,
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: darkText,
-                          letterSpacing: -0.5,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            clientName,
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: darkText,
+                              letterSpacing: -0.5,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            clientId,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: greyText.withOpacity(0.8),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     Container(

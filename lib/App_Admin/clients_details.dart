@@ -72,6 +72,30 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
     }
   }
 
+
+
+  String _formatTime(String? dateStr) {
+    if (dateStr == null) return "Just Now";
+    try {
+      final date = DateTime.parse(dateStr).toLocal();
+      // Using intl to format: e.g., 09 May 2024, 03:30 PM
+      return "${date.day.toString().padLeft(2, '0')} ${_getMonthName(date.month)} ${date.year}, ${_formatHour(date.hour, date.minute)}";
+    } catch (e) {
+      return "Just Now";
+    }
+  }
+
+  String _getMonthName(int month) {
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return months[month - 1];
+  }
+
+  String _formatHour(int hour, int minute) {
+    final period = hour >= 12 ? "PM" : "AM";
+    final h = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+    return "${h.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} $period";
+  }
+
   Future<void> _updateStatus(String newStatus) async {
     setState(() => _isLoading = true);
     try {
@@ -371,17 +395,31 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        "CLIENT ID",
+                        "CLIENT NAME",
                         style: TextStyle(color: greyText, fontSize: 13, fontWeight: FontWeight.w600, letterSpacing: 0.5),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        _alertData?['full_name'] ?? _alertData?['client_id'] ?? "Unknown",
+                        _alertData?['full_name'] ?? "Unknown",
                         style: const TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
                           color: primaryDarkRed,
                           letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        "CLIENT ID",
+                        style: TextStyle(color: greyText, fontSize: 13, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _alertData?['client_id'] ?? "N/A",
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: darkText,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -483,6 +521,8 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
                 ),
               ),
 
+
+
               const SizedBox(height: 24),
 
               // Bottom Stats
@@ -490,9 +530,13 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
                 child: Row(
                   children: [
-                    Expanded(child: _buildStatCard("LAST SYNC", "Just Now")),
+                    Expanded(child: _buildStatCard("LAST SYNC", _alertData?['created_at'] != null 
+                        ? _formatTime(_alertData?['created_at']) 
+                        : "Just Now")),
                     const SizedBox(width: 16),
-                    Expanded(child: _buildStatCard("ALERT ID", widget.alertId.substring(widget.alertId.length - 6))),
+                    Expanded(child: _buildStatCard("ALERT ID", widget.alertId.length > 6 
+                        ? widget.alertId.substring(widget.alertId.length - 6) 
+                        : widget.alertId)),
                   ],
                 ),
               ),

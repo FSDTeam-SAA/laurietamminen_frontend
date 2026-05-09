@@ -6,8 +6,13 @@ class LocationService {
     bool serviceEnabled;
     LocationPermission permission;
 
-    // Test if location services are enabled.
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    // Test if location services are enabled with a timeout.
+    try {
+      serviceEnabled = await Geolocator.isLocationServiceEnabled().timeout(const Duration(seconds: 5));
+    } catch (_) {
+      serviceEnabled = false;
+    }
+    
     if (!serviceEnabled) {
       // Location services are not enabled don't continue
       // accessing the position and request users of the 
@@ -15,10 +20,19 @@ class LocationService {
       debugPrint('Location services are disabled.');
       return false;
     }
-
-    permission = await Geolocator.checkPermission();
+    
+    try {
+      permission = await Geolocator.checkPermission().timeout(const Duration(seconds: 5));
+    } catch (_) {
+      permission = LocationPermission.denied;
+    }
+    
     if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
+      try {
+        permission = await Geolocator.requestPermission().timeout(const Duration(seconds: 10));
+      } catch (_) {
+        permission = LocationPermission.denied;
+      }
       if (permission == LocationPermission.denied) {
         // Permissions are denied, next time you could try
         // requesting permissions again (this is also where
