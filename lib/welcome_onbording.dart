@@ -120,7 +120,7 @@ class _WelcomeOnboardingState extends State<WelcomeOnboarding> {
         ),
         const SizedBox(height: 30),
         Text(
-          "Understand Your Activity",
+          "Track Your Steps",
           style: TextStyle(
             color: darkText,
             fontSize: 26,
@@ -131,7 +131,7 @@ class _WelcomeOnboardingState extends State<WelcomeOnboarding> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 40),
           child: Text(
-            "Simple insights into your daily and\nweekly step goals",
+            "Log your daily steps and review weekly step totals",
             textAlign: TextAlign.center,
             style: TextStyle(color: greyText, fontSize: 16, height: 1.5),
           ),
