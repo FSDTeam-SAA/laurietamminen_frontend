@@ -628,7 +628,7 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage>
       delay: const Duration(milliseconds: 1050),
       child: Center(
         child: Text(
-          "Copyright © 2024 SolidSteps App",
+          "Copyright © 2026 SolidSteps App",
           style: TextStyle(
             fontSize: 12,
             color: greyText,
