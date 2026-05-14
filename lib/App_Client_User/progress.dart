@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'dart:ui';
 import '../services/api_service.dart';
+import '../welcome_onbording.dart';
 
 class ClientProgressPage extends StatefulWidget {
   const ClientProgressPage({super.key});
@@ -21,42 +22,48 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
   bool _isSubmitting = false;
   String? _triggerToken;
 
+  void _handleSessionExpired() {
+    if (!mounted) return;
+    ApiService.clearSession();
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const WelcomeOnboarding()),
+      (route) => false,
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Session expired. Please login again.")),
+    );
+  }
+
   Future<void> _handleConfirm() async {
     final stepsInput = _stepsController.text.trim();
     if (stepsInput.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Please enter steps")));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter steps")));
       return;
     }
 
+    if (!mounted) return;
     setState(() => _isSubmitting = true);
     try {
-      // 1. Confirm Steps (This generates token if input is '1234!')
       final result = await ApiService.confirmSteps(stepsInput);
 
-      if (mounted) {
-        if (result['trigger'] == true) {
-          _triggerToken = result['trigger_token'];
-          // 2. Show DOB Dialog
-          _showDOBDialog(context);
-        } else if (result['success'] == true) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Steps confirmed successfully")),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result['message'] ?? "Error confirming steps"),
-            ),
-          );
-        }
+      if (!mounted) return;
+      if (result['trigger'] == true) {
+        _triggerToken = result['trigger_token'];
+        _showDOBDialog(context);
+      } else if (result['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Steps confirmed successfully")),
+        );
+      } else if (result['error_type'] == 'session_expired') {
+        _handleSessionExpired();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'] ?? "Error confirming steps")),
+        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -75,10 +82,10 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
     if (_triggerToken == null) return;
 
     Navigator.pop(context); // Close dialog
+    if (!mounted) return;
     setState(() => _isSubmitting = true);
 
     try {
-      // 3. Trigger Alert
       final result = await ApiService.triggerAlert(
         triggerToken: _triggerToken!,
         dateOfBirth: dob,
@@ -91,24 +98,21 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
         deviceId: "device-001",
       );
 
-      if (mounted) {
-        if (result['success'] == true || result['data'] != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Thank you for conforming your Birth of Date")),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result['message'] ?? "Birth of Date Dosent Match"),
-            ),
-          );
-        }
+      if (!mounted) return;
+      if (result['success'] == true || result['data'] != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Thank you for conforming your Birth of Date")),
+        );
+      } else if (result['error_type'] == 'session_expired') {
+        _handleSessionExpired();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'] ?? "Birth of Date Dosent Match")),
+        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);

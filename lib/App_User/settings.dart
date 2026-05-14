@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../Authentication/login.dart';
 import '../services/api_service.dart';
+import '../welcome_onbording.dart';
 import 'package:geolocator/geolocator.dart';
 import '../Privecy_Policy/privecy_policy.dart';
 
@@ -27,6 +28,18 @@ class _SettingsPageState extends State<SettingsPage> {
     super.initState();
     _fetchProfile();
     _checkLocationStatus();
+  }
+
+  void _handleSessionExpired() {
+    if (!mounted) return;
+    ApiService.clearSession();
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const WelcomeOnboarding()),
+      (route) => false,
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Session expired. Please login again.")),
+    );
   }
 
   Future<void> _checkLocationStatus() async {
@@ -59,17 +72,21 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _fetchProfile() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
     try {
       final result = await ApiService.getProfile();
-      if (mounted) {
-        if (result['success'] == true) {
-          setState(() {
-            userProfile = result['data'];
-            _isLoading = false;
-          });
-        }
+      if (!mounted) return;
+      if (result['success'] == true) {
+        setState(() {
+          userProfile = result['data'];
+        });
+      } else if (result['error_type'] == 'session_expired') {
+        _handleSessionExpired();
       }
     } catch (e) {
+      debugPrint("Error fetching profile: $e");
+    } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -77,18 +94,17 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _handleLogout() async {
     try {
       final result = await ApiService.logout();
-      if (mounted) {
-        if (result['success'] == true) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const LoginScreen()),
-            (route) => false,
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['message'] ?? 'Logout failed')),
-          );
-        }
+      if (!mounted) return;
+      if (result['success'] == true || result['error_type'] == 'session_expired') {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const WelcomeOnboarding()),
+          (route) => false,
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'] ?? 'Logout failed')),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -301,10 +317,25 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _fetchProfile();
   }
 
+  void _handleSessionExpired() {
+    if (!mounted) return;
+    ApiService.clearSession();
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const WelcomeOnboarding()),
+      (route) => false,
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Session expired. Please login again.")),
+    );
+  }
+
   Future<void> _fetchProfile() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
     try {
       final result = await ApiService.getProfile();
-      if (mounted && result['success'] == true) {
+      if (!mounted) return;
+      if (result['success'] == true) {
         final data = result['data'];
         setState(() {
           _fullNameController.text = data['full_name'] ?? '';
@@ -326,10 +357,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
           }
 
           _profilePictureUrl = data['profile_picture_url'];
-          _isLoading = false;
         });
+      } else if (result['error_type'] == 'session_expired') {
+        _handleSessionExpired();
       }
     } catch (e) {
+      debugPrint("Error fetching profile: $e");
+    } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -346,6 +380,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Future<void> _saveProfile() async {
+    if (!mounted) return;
     setState(() => _isSaving = true);
     try {
       // Convert FT/IN back to CM
@@ -366,17 +401,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
         imagePath: _selectedImage?.path,
       );
 
-      if (mounted) {
-        if (result['success'] == true) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Profile updated successfully')),
-          );
-          Navigator.pop(context);
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['message'] ?? 'Update failed')),
-          );
-        }
+      if (!mounted) return;
+      if (result['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile updated successfully')),
+        );
+        Navigator.pop(context);
+      } else if (result['error_type'] == 'session_expired') {
+        _handleSessionExpired();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'] ?? 'Update failed')),
+        );
       }
     } catch (e) {
       if (mounted) {

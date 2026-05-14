@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'clients_details.dart';
 import '../services/api_service.dart';
+import '../welcome_onbording.dart';
 
 class ClientsNotificationScreen extends StatefulWidget {
   const ClientsNotificationScreen({super.key});
@@ -24,12 +25,25 @@ class _ClientsNotificationScreenState extends State<ClientsNotificationScreen> {
     _fetchAlerts();
   }
 
+  void _handleSessionExpired() {
+    if (!mounted) return;
+    ApiService.clearSession();
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const WelcomeOnboarding()),
+      (route) => false,
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Session expired. Please login again.")),
+    );
+  }
+
   Future<void> _fetchAlerts() async {
     setState(() => _isLoading = true);
     try {
       final result = await ApiService.getAdminAlerts(filter: _currentFilter);
       debugPrint("Fetched alerts: $result");
-      if (mounted && result['success'] == true) {
+      if (!mounted) return;
+      if (result['success'] == true) {
         final data = result['data'];
         setState(() {
           if (data is List) {
@@ -38,13 +52,13 @@ class _ClientsNotificationScreenState extends State<ClientsNotificationScreen> {
             debugPrint("Warning: Expected list in data but got ${data.runtimeType}");
             _alerts = [];
           }
-          _isLoading = false;
         });
-      } else {
-        setState(() => _isLoading = false);
+      } else if (result['error_type'] == 'session_expired') {
+        _handleSessionExpired();
       }
     } catch (e) {
       debugPrint("Error fetching alerts: $e");
+    } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }

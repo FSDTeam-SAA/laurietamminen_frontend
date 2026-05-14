@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http_parser/http_parser.dart';
@@ -68,12 +69,28 @@ class ApiService {
     return prefs.getString('refresh_token');
   }
 
+  static bool _isRefreshing = false;
+  static Completer<bool>? _refreshCompleter;
+
   // Refresh Access Token
   static Future<bool> refreshAccessToken() async {
+    if (_isRefreshing) {
+      debugPrint("Token refresh already in progress, waiting...");
+      return _refreshCompleter?.future ?? Future.value(false);
+    }
+
+    _isRefreshing = true;
+    _refreshCompleter = Completer<bool>();
+
     final refreshToken = await getRefreshToken();
-    if (refreshToken == null) return false;
+    if (refreshToken == null) {
+      _isRefreshing = false;
+      _refreshCompleter!.complete(false);
+      return false;
+    }
 
     try {
+      debugPrint("Refreshing access token...");
       final response = await http.post(
         Uri.parse('$baseUrl/auth/refresh-token'),
         headers: {'Content-Type': 'application/json'},
@@ -83,13 +100,25 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success'] == true) {
-          await saveTokens(data['data']['access_token'], data['data']['refresh_token']);
-          return true;
+          final String newAccess = data['data']['access_token'].toString();
+          final String newRefresh = data['data']['refresh_token'].toString();
+          
+          if (newAccess != "null" && newAccess.isNotEmpty) {
+            await saveTokens(newAccess, newRefresh);
+            debugPrint("Token refreshed successfully.");
+            _refreshCompleter!.complete(true);
+            return true;
+          }
         }
       }
+      debugPrint("Token refresh failed with status: ${response.statusCode}");
     } catch (e) {
-      debugPrint("Token refresh failed: $e");
+      debugPrint("Token refresh failed with error: $e");
     }
+
+    _refreshCompleter!.complete(false);
+    _isRefreshing = false;
+    _refreshCompleter = null;
     return false;
   }
 
@@ -101,6 +130,12 @@ class ApiService {
   }) async {
     String? token = await getAccessToken();
     
+    // Check if token is invalid or the string "null"
+    if (token == null || token.isEmpty || token == "null" || token.length < 10) {
+      debugPrint("Invalid token detected for $path: $token. Triggering expiry.");
+      return {'success': false, 'message': 'Invalid session.', 'error_type': 'session_expired'};
+    }
+    
     Future<http.Response> makeRequest(String? currentToken) async {
       final url = Uri.parse('$baseUrl$path');
       final headers = {
@@ -108,39 +143,53 @@ class ApiService {
         'Authorization': 'Bearer $currentToken',
       };
 
+      final duration = const Duration(seconds: 30);
+
       switch (method.toUpperCase()) {
         case 'GET':
-          return await http.get(url, headers: headers);
+          return await http.get(url, headers: headers).timeout(duration);
         case 'POST':
-          return await http.post(url, headers: headers, body: body != null ? jsonEncode(body) : null);
+          return await http.post(url, headers: headers, body: body != null ? jsonEncode(body) : null).timeout(duration);
         case 'PATCH':
-          return await http.patch(url, headers: headers, body: body != null ? jsonEncode(body) : null);
+          return await http.patch(url, headers: headers, body: body != null ? jsonEncode(body) : null).timeout(duration);
         case 'DELETE':
-          return await http.delete(url, headers: headers);
+          return await http.delete(url, headers: headers).timeout(duration);
         default:
           throw Exception("Unsupported HTTP method: $method");
       }
     }
 
-    var response = await makeRequest(token);
-
-    if (response.statusCode == 401) {
-      debugPrint("Token expired, attempting refresh...");
-      final refreshed = await refreshAccessToken();
-      if (refreshed) {
-        token = await getAccessToken();
-        response = await makeRequest(token);
-      } else {
-        debugPrint("Refresh failed, clearing session.");
-        await clearSession();
-        return {'success': false, 'message': 'Session expired. Please login again.'};
-      }
-    }
-
     try {
+      var response = await makeRequest(token);
+
+      // Handle common token errors (401 Unauthorized or 400 with "jwt malformed")
+      bool isTokenError = response.statusCode == 401;
+      
+      // Some backends return 400 for malformed JWTs
+      if (response.statusCode == 400) {
+        final bodyStr = response.body.toLowerCase();
+        if (bodyStr.contains("jwt") || bodyStr.contains("token") || bodyStr.contains("malformed")) {
+          isTokenError = true;
+        }
+      }
+
+      if (isTokenError) {
+        debugPrint("Token error (${response.statusCode}) for $path, attempting refresh...");
+        final refreshed = await refreshAccessToken();
+        if (refreshed) {
+          token = await getAccessToken();
+          response = await makeRequest(token);
+        } else {
+          debugPrint("Refresh failed for $path, clearing session.");
+          await clearSession();
+          return {'success': false, 'message': 'Session expired. Please login again.', 'error_type': 'session_expired'};
+        }
+      }
+
       return jsonDecode(response.body);
     } catch (e) {
-      return {'success': false, 'message': 'Invalid response from server'};
+      debugPrint("Authenticated request error for $path: $e");
+      return {'success': false, 'message': 'Network error or server unreachable', 'error': e.toString()};
     }
   }
 
@@ -199,8 +248,12 @@ class ApiService {
     
     final data = jsonDecode(response.body);
     if (data['success'] == true) {
-      await saveTokens(data['data']['access_token'], data['data']['refresh_token']);
-      await saveUserRole(data['data']['user']['role']);
+      final String access = data['data']['access_token'].toString();
+      final String refresh = data['data']['refresh_token'].toString();
+      
+      debugPrint("Saving tokens. Access length: ${access.length}");
+      await saveTokens(access, refresh);
+      await saveUserRole(data['data']['user']['role'].toString());
     }
     return data;
   }

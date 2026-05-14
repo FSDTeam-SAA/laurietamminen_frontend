@@ -4,6 +4,7 @@ import 'progress.dart';
 import 'add_steps.dart';
 import 'settings.dart';
 import '../services/api_service.dart';
+import '../welcome_onbording.dart';
 
 class UserDashboardScreen extends StatefulWidget {
   const UserDashboardScreen({super.key});
@@ -63,22 +64,43 @@ class _HomeContentState extends State<_HomeContent> {
   }
 
   Future<void> _fetchInitialData() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
-    await Future.wait([
-      _fetchProfile(),
-      _fetchTodaySteps(),
-      _fetchWeeklyData(),
-    ]);
-    if (mounted) setState(() => _isLoading = false);
+    try {
+      await Future.wait([
+        _fetchProfile(),
+        _fetchTodaySteps(),
+        _fetchWeeklyData(),
+      ]);
+    } catch (e) {
+      debugPrint("Error in _fetchInitialData: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _handleSessionExpired() {
+    if (!mounted) return;
+    ApiService.clearSession();
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const WelcomeOnboarding()),
+      (route) => false,
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Session expired. Please login again.")),
+    );
   }
 
   Future<void> _fetchProfile() async {
     try {
       final result = await ApiService.getProfile();
-      if (mounted && result['success'] == true) {
+      if (!mounted) return;
+      if (result['success'] == true) {
         setState(() {
           userProfile = result['data'];
         });
+      } else if (result['error_type'] == 'session_expired') {
+        _handleSessionExpired();
       }
     } catch (e) {
       debugPrint("Error fetching profile: $e");
@@ -88,10 +110,13 @@ class _HomeContentState extends State<_HomeContent> {
   Future<void> _fetchTodaySteps() async {
     try {
       final result = await ApiService.getTodaySteps();
-      if (mounted && result['success'] == true) {
+      if (!mounted) return;
+      if (result['success'] == true) {
         setState(() {
           todaySteps = result['data']?['steps'] ?? 0;
         });
+      } else if (result['error_type'] == 'session_expired') {
+        _handleSessionExpired();
       }
     } catch (e) {
       debugPrint("Error fetching steps: $e");
@@ -101,10 +126,13 @@ class _HomeContentState extends State<_HomeContent> {
   Future<void> _fetchWeeklyData() async {
     try {
       final result = await ApiService.getWeeklySteps();
-      if (mounted && result['success'] == true) {
+      if (!mounted) return;
+      if (result['success'] == true) {
         setState(() {
           streak = result['data']?['streak']?['current_streak'] ?? 0;
         });
+      } else if (result['error_type'] == 'session_expired') {
+        _handleSessionExpired();
       }
     } catch (e) {
       debugPrint("Error fetching weekly data: $e");

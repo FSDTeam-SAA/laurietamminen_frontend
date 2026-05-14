@@ -4,7 +4,7 @@ import 'package:latlong2/latlong.dart';
 import '../services/api_service.dart';
 import 'dart:async';
 import 'package:url_launcher/url_launcher.dart';
-import '../Authentication/login.dart';
+import '../welcome_onbording.dart';
 
 class ClientsDetailsScreen extends StatefulWidget {
   final String alertId;
@@ -30,6 +30,18 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
     });
   }
 
+  void _handleSessionExpired() {
+    if (!mounted) return;
+    ApiService.clearSession();
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const WelcomeOnboarding()),
+      (route) => false,
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Session expired. Please login again.")),
+    );
+  }
+
   @override
   void dispose() {
     _locationTimer?.cancel();
@@ -37,20 +49,25 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
   }
 
   Future<void> _fetchInitialDetails() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
     try {
       final result = await ApiService.getAlertDetail(widget.alertId);
-      if (mounted && result['success'] == true) {
+      if (!mounted) return;
+      if (result['success'] == true) {
         setState(() {
           _alertData = result['data'];
           final coords = _alertData?['coordinates'];
           if (coords != null) {
             _currentLocation = LatLng(coords['lat'].toDouble(), coords['lng'].toDouble());
           }
-          _isLoading = false;
         });
+      } else if (result['error_type'] == 'session_expired') {
+        _handleSessionExpired();
       }
     } catch (e) {
       debugPrint("Error fetching alert details: $e");
+    } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -58,7 +75,8 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
   Future<void> _updateLocation() async {
     try {
       final result = await ApiService.getAlertDetail(widget.alertId);
-      if (mounted && result['success'] == true) {
+      if (!mounted) return;
+      if (result['success'] == true) {
         setState(() {
           _alertData = result['data'];
           final coords = _alertData?['coordinates'];
@@ -66,13 +84,13 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
             _currentLocation = LatLng(coords['lat'].toDouble(), coords['lng'].toDouble());
           }
         });
+      } else if (result['error_type'] == 'session_expired') {
+        _handleSessionExpired();
       }
     } catch (e) {
       debugPrint("Error updating location: $e");
     }
   }
-
-
 
   String _formatTime(String? dateStr) {
     if (dateStr == null) return "Just Now";
@@ -97,21 +115,22 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
   }
 
   Future<void> _updateStatus(String newStatus) async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final result = await ApiService.updateAlertStatus(widget.alertId, newStatus);
-      if (mounted) {
-        if (result['success'] == true) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Status updated to $newStatus")),
-          );
-          _fetchInitialDetails(); // Refresh data
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Error: ${result['message']}")),
-          );
-          setState(() => _isLoading = false);
-        }
+      if (!mounted) return;
+      if (result['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Status updated to $newStatus")),
+        );
+        _fetchInitialDetails(); // Refresh data
+      } else if (result['error_type'] == 'session_expired') {
+        _handleSessionExpired();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: ${result['message']}")),
+        );
       }
     } catch (e) {
       debugPrint("Error updating status: $e");
@@ -119,8 +138,9 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Failed to update status: $e")),
         );
-        setState(() => _isLoading = false);
       }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -182,13 +202,15 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
   }
 
   Future<void> _handleLogout() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
-      await ApiService.logout();
-      if (mounted) {
+      final result = await ApiService.logout();
+      if (!mounted) return;
+      if (result['success'] == true || result['error_type'] == 'session_expired') {
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          MaterialPageRoute(builder: (context) => const WelcomeOnboarding()),
           (route) => false,
         );
       }

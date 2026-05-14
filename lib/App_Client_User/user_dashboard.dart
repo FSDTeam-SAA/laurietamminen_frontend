@@ -4,6 +4,7 @@ import 'progress.dart'; // Imports ClientProgressPage from the same folder
 import 'add_steps.dart'; // Imports ClientAddStepsPage from the same folder
 import 'settings.dart'; // Imports ClientSettingsPage from the same folder
 import '../services/api_service.dart';
+import '../welcome_onbording.dart';
 
 class ClientUserDashboardScreen extends StatefulWidget {
   const ClientUserDashboardScreen({super.key});
@@ -60,16 +61,34 @@ class _HomeContentState extends State<_HomeContent> {
     _fetchProfile();
   }
 
+  void _handleSessionExpired() {
+    if (!mounted) return;
+    ApiService.clearSession();
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const WelcomeOnboarding()),
+      (route) => false,
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Session expired. Please login again.")),
+    );
+  }
+
   Future<void> _fetchProfile() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
     try {
       final result = await ApiService.getProfile();
-      if (mounted && result['success'] == true) {
+      if (!mounted) return;
+      if (result['success'] == true) {
         setState(() {
           userProfile = result['data'];
-          _isLoading = false;
         });
+      } else if (result['error_type'] == 'session_expired') {
+        _handleSessionExpired();
       }
     } catch (e) {
+      debugPrint("Error fetching profile: $e");
+    } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
-import '../Authentication/login.dart';
+import '../welcome_onbording.dart';
 
 class AdminSettingsPage extends StatefulWidget {
   const AdminSettingsPage({super.key});
@@ -15,12 +15,17 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
   Future<void> _handleLogout() async {
     setState(() => _isLoading = true);
     try {
-      await ApiService.logout();
-      if (mounted) {
+      final result = await ApiService.logout();
+      if (!mounted) return;
+      if (result['success'] == true || result['error_type'] == 'session_expired') {
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          MaterialPageRoute(builder: (context) => const WelcomeOnboarding()),
           (route) => false,
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'] ?? 'Logout failed')),
         );
       }
     } catch (e) {

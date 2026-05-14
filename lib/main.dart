@@ -55,25 +55,60 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   Future<void> _checkAuth() async {
+    debugPrint("Auth check started...");
     final token = await ApiService.getAccessToken();
     final role = await ApiService.getUserRole();
+    debugPrint("Token found: ${token != null}, Role: $role");
 
     if (mounted) {
       if (token != null && role != null) {
-        Widget dashboard;
-        if (role == 'admin') {
-          dashboard = const admin.AdminDashboardScreen();
-        } else if (role == 'client') {
-          dashboard = const client.ClientUserDashboardScreen();
-        } else {
-          dashboard = const user.UserDashboardScreen();
-        }
+        debugPrint("Verifying session with getProfile()...");
+        try {
+          final result = await ApiService.getProfile();
+          debugPrint("getProfile result: ${result['success']}");
+          
+          if (mounted) {
+            if (result['success'] == false) {
+              final errorMsg = result['message']?.toString().toLowerCase() ?? "";
+              debugPrint("Session invalid: ${result['error_type']}, Message: $errorMsg");
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => dashboard),
-        );
+              if (result['error_type'] == 'session_expired' || errorMsg.contains('jwt')) {
+                debugPrint("Redirecting to WelcomeOnboarding due to token issue.");
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const WelcomeOnboarding()),
+                );
+                return;
+              }
+            }
+
+            debugPrint("Proceeding to dashboard for role: $role");
+            Widget dashboard;
+            if (role == 'admin') {
+              dashboard = const admin.AdminDashboardScreen();
+            } else if (role == 'client') {
+              dashboard = const client.ClientUserDashboardScreen();
+            } else {
+              dashboard = const user.UserDashboardScreen();
+            }
+
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => dashboard),
+            );
+          }
+        } catch (e) {
+          debugPrint("Error during getProfile: $e");
+          // Fallback if needed
+          if (mounted) {
+             Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const WelcomeOnboarding()),
+            );
+          }
+        }
       } else {
+        debugPrint("No token or role, redirecting to onboarding.");
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const WelcomeOnboarding()),

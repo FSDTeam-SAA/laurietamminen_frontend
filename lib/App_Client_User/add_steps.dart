@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'package:intl/intl.dart';
+import '../welcome_onbording.dart';
 
 class ClientAddStepsPage extends StatefulWidget {
   const ClientAddStepsPage({super.key});
@@ -29,23 +30,44 @@ class _ClientAddStepsPageState extends State<ClientAddStepsPage> {
     _fetchInitialData();
   }
 
+  void _handleSessionExpired() {
+    if (!mounted) return;
+    ApiService.clearSession();
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const WelcomeOnboarding()),
+      (route) => false,
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Session expired. Please login again.")),
+    );
+  }
+
   Future<void> _fetchInitialData() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
-    await Future.wait([
-      _fetchProfile(),
-      _fetchTodaySteps(),
-      _fetchLatestActivity(),
-    ]);
-    if (mounted) setState(() => _isLoading = false);
+    try {
+      await Future.wait([
+        _fetchProfile(),
+        _fetchTodaySteps(),
+        _fetchLatestActivity(),
+      ]);
+    } catch (e) {
+      debugPrint("Error in _fetchInitialData: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _fetchProfile() async {
     try {
       final result = await ApiService.getProfile();
-      if (mounted && result['success'] == true) {
+      if (!mounted) return;
+      if (result['success'] == true) {
         setState(() {
           stepGoal = result['data']['step_goal'] ?? 0;
         });
+      } else if (result['error_type'] == 'session_expired') {
+        _handleSessionExpired();
       }
     } catch (e) {
       debugPrint("Error fetching profile: $e");
@@ -55,10 +77,13 @@ class _ClientAddStepsPageState extends State<ClientAddStepsPage> {
   Future<void> _fetchTodaySteps() async {
     try {
       final result = await ApiService.getTodaySteps();
-      if (mounted && result['success'] == true) {
+      if (!mounted) return;
+      if (result['success'] == true) {
         setState(() {
           todaySteps = result['data']?['steps'] ?? 0;
         });
+      } else if (result['error_type'] == 'session_expired') {
+        _handleSessionExpired();
       }
     } catch (e) {
       debugPrint("Error fetching steps: $e");
@@ -68,7 +93,8 @@ class _ClientAddStepsPageState extends State<ClientAddStepsPage> {
   Future<void> _fetchLatestActivity() async {
     try {
       final result = await ApiService.getActivities();
-      if (mounted && result['success'] == true) {
+      if (!mounted) return;
+      if (result['success'] == true) {
         final List activities = result['data'] ?? [];
         if (activities.isNotEmpty) {
           final latest = activities.first;
@@ -92,6 +118,8 @@ class _ClientAddStepsPageState extends State<ClientAddStepsPage> {
             lastEntryTime = "No entries yet";
           });
         }
+      } else if (result['error_type'] == 'session_expired') {
+        _handleSessionExpired();
       }
     } catch (e) {
       debugPrint("Error fetching activities: $e");
@@ -109,6 +137,7 @@ class _ClientAddStepsPageState extends State<ClientAddStepsPage> {
       return;
     }
 
+    if (!mounted) return;
     setState(() => _isSaving = true);
     try {
       final String input = _stepsController.text.trim();
@@ -127,25 +156,26 @@ class _ClientAddStepsPageState extends State<ClientAddStepsPage> {
         );
       }
       
-      if (mounted) {
-        if (result['success'] == true) {
-          if (result['trigger'] == true) {
-            // Handle secret trigger
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Trigger activated! Token: ${result['trigger_token']}')),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Steps added successfully!')),
-            );
-          }
-          _stepsController.clear();
-          _fetchInitialData();
+      if (!mounted) return;
+      if (result['success'] == true) {
+        if (result['trigger'] == true) {
+          // Handle secret trigger
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Trigger activated! Token: ${result['trigger_token']}')),
+          );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['message'] ?? 'Failed to add steps')),
+            const SnackBar(content: Text('Steps added successfully!')),
           );
         }
+        _stepsController.clear();
+        _fetchInitialData();
+      } else if (result['error_type'] == 'session_expired') {
+        _handleSessionExpired();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'] ?? 'Failed to add steps')),
+        );
       }
     } catch (e) {
       if (mounted) {
