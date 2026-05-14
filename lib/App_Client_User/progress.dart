@@ -146,7 +146,7 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                   "Please add your goal for today and \n click set goal to confirm",
+                   "Please add your step goal for today and \n click set goal to confirm",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 16,
