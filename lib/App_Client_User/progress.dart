@@ -18,9 +18,15 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
   final Color greyText = const Color(0xFF8A606A);
 
   final TextEditingController _stepsController = TextEditingController();
-  final TextEditingController _dobController = TextEditingController();
   bool _isSubmitting = false;
-  String? _triggerToken;
+  int todaySteps = 0;
+  int stepGoal = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTodayStats();
+  }
 
   void _handleSessionExpired() {
     if (!mounted) return;
@@ -34,6 +40,32 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
     );
   }
 
+  Future<void> _fetchTodayStats() async {
+    try {
+      final results = await Future.wait([
+        ApiService.getProfile(),
+        ApiService.getTodaySteps(),
+      ]);
+      
+      if (!mounted) return;
+      
+      if (results[0]['success'] == true) {
+        setState(() {
+          stepGoal = results[0]['data']['step_goal'] ?? 0;
+        });
+      }
+      
+      if (results[1]['success'] == true) {
+        setState(() {
+          todaySteps = results[1]['data']?['steps'] ?? 0;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching stats: $e");
+    }
+  }
+
+  // NOW: This performs Add Activity logic (formerly in add_steps.dart)
   Future<void> _handleConfirm() async {
     final stepsInput = _stepsController.text.trim();
     if (stepsInput.isEmpty) {
@@ -41,73 +73,34 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
       return;
     }
 
-    if (!mounted) return;
-    setState(() => _isSubmitting = true);
-    try {
-      final result = await ApiService.confirmSteps(stepsInput);
-
-      if (!mounted) return;
-      if (result['trigger'] == true) {
-        _triggerToken = result['trigger_token'];
-        _showDOBDialog(context);
-      } else if (result['success'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Steps confirmed successfully")),
-        );
-      } else if (result['error_type'] == 'session_expired') {
-        _handleSessionExpired();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message'] ?? "Error confirming steps")),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
-      }
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
-    }
-  }
-
-  Future<void> _handleDOBConfirm() async {
-    final dob = _dobController.text.trim();
-    if (dob.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter date of birth")),
-      );
+    final inputSteps = double.tryParse(stepsInput);
+    if (inputSteps == null || inputSteps <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter a valid number")));
       return;
     }
 
-    if (_triggerToken == null) return;
-
-    Navigator.pop(context); // Close dialog
     if (!mounted) return;
     setState(() => _isSubmitting = true);
-
     try {
-      final result = await ApiService.triggerAlert(
-        triggerToken: _triggerToken!,
-        dateOfBirth: dob,
-        lat: 23.8103,
-        lng: 90.4125,
-        accuracy: 12,
-        streetAddress: "123 Demo Street, Dhaka",
-        signalStrength: "strong",
-        connectionState: "4g",
-        deviceId: "device-001",
+      // Defaulting to "walking" since there's no category selector here
+      final newTotal = todaySteps + inputSteps.toInt();
+      final result = await ApiService.createActivity(
+        category: "walking",
+        steps: newTotal.toDouble(),
       );
 
       if (!mounted) return;
-      if (result['success'] == true || result['data'] != null) {
+      if (result['success'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Thank you for conforming your Birth of Date")),
+          const SnackBar(content: Text("Steps added successfully!")),
         );
+        _stepsController.clear();
+        _fetchTodayStats();
       } else if (result['error_type'] == 'session_expired') {
         _handleSessionExpired();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message'] ?? "Birth of Date Dosent Match")),
+          SnackBar(content: Text(result['message'] ?? "Error adding steps")),
         );
       }
     } catch (e) {
@@ -120,9 +113,7 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
   }
 
   Future<void> _onRefresh() async {
-    // Simulate data refresh
-    await Future.delayed(const Duration(seconds: 1));
-    if (mounted) setState(() {});
+    await _fetchTodayStats();
   }
 
   @override
@@ -142,21 +133,13 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                 children: [
                   Text(
                     "Add your Today Goal",
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: darkText,
-                    ),
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: darkText),
                   ),
                   const SizedBox(height: 12),
                   Text(
                    "Please add your step goal for today and \n click set goal to confirm",
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: greyText,
-                      height: 1.4,
-                    ),
+                    style: TextStyle(fontSize: 16, color: greyText, height: 1.4),
                   ),
                 ],
               ),
@@ -176,24 +159,18 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                 children: [
                   Text(
                     "PLEASE ENTER YOUR STEPS FOR TODAY",
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: darkText,
-                    ),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: darkText),
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: _stepsController,
+                    keyboardType: TextInputType.number,
                     decoration: InputDecoration(
                       hintText: "Enter steps...",
                       hintStyle: TextStyle(color: greyText.withOpacity(0.5)),
                       filled: true,
                       fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(28),
                         borderSide: const BorderSide(color: Color(0xFFF0D5DD)),
@@ -217,20 +194,14 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                       onPressed: _isSubmitting ? null : _handleConfirm,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryDarkRed,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(28),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
                         elevation: 0,
                       ),
                       child: _isSubmitting
                           ? const CircularProgressIndicator(color: Colors.white)
                           : const Text(
                               "Confirm",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                             ),
                     ),
                   ),
@@ -238,96 +209,6 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
               ),
             ),
 
-            const SizedBox(height: 24),
-
-            // Status Card
-            // Container(
-            //   padding: const EdgeInsets.all(10),
-            //   decoration: BoxDecoration(
-            //     color: const Color(0xFFFFFBFC).withOpacity(0.5),
-            //     borderRadius: BorderRadius.circular(24),
-            //     border: Border.all(color: const Color(0xFFF0D5DD), width: 1.5),
-            //   ),
-            //   child: Stack(
-            //     children: [
-            //       Positioned(
-            //         right: 20,
-            //         top: 20,
-            //         child: Opacity(
-            //           opacity: 0.1,
-            //           child: Image.asset(
-            //             'assets/images/bottom_nev_image/step.png',
-            //             height: 80,
-            //             color: primaryDarkRed,
-            //           ),
-            //         ),
-            //       ),
-            //       Container(
-            //         width: double.infinity,
-            //         padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
-            //         child: Column(
-            //           children: [
-            //             Text(
-            //               "TOTAL STEPS TODAY",
-            //               style: TextStyle(
-            //                 fontSize: 16,
-            //                 fontWeight: FontWeight.w600,
-            //                 color: darkText,
-            //                 letterSpacing: 0.8,
-            //               ),
-            //             ),
-            //             const SizedBox(height: 8),
-            //             RichText(
-            //               text: TextSpan(
-            //                 children: [
-            //                   TextSpan(
-            //                     text: "100",
-            //                     style: TextStyle(
-            //                       fontSize: 68,
-            //                       fontWeight: FontWeight.bold,
-            //                       color: primaryDarkRed,
-            //                     ),
-            //                   ),
-            //                   TextSpan(
-            //                     text: "/10,000",
-            //                     style: TextStyle(
-            //                       fontSize: 36,
-            //                       fontWeight: FontWeight.bold,
-            //                       color: primaryDarkRed,
-            //                     ),
-            //                   ),
-            //                 ],
-            //               ),
-            //             ),
-            //             const SizedBox(height: 20),
-            //             Container(
-            //               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            //               decoration: BoxDecoration(
-            //                 color: const Color(0xFFF0D5DD).withOpacity(0.5),
-            //                 borderRadius: BorderRadius.circular(24),
-            //               ),
-            //               child: Row(
-            //                 mainAxisSize: MainAxisSize.min,
-            //                 children: [
-            //                   Icon(Icons.check_circle_rounded, color: primaryDarkRed, size: 18),
-            //                   const SizedBox(width: 8),
-            //                   Text(
-            //                     "High Intensity",
-            //                     style: TextStyle(
-            //                       color: primaryDarkRed,
-            //                       fontWeight: FontWeight.bold,
-            //                       fontSize: 16,
-            //                     ),
-            //                   ),
-            //                 ],
-            //               ),
-            //             ),
-            //           ],
-            //         ),
-            //       ),
-            //     ],
-            //   ),
-            // ),
             const SizedBox(height: 70),
 
             // Weekly Activity Section
@@ -336,16 +217,9 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
               children: [
                 Text(
                   "Weekly Activity",
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: darkText,
-                  ),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: darkText),
                 ),
-                Text(
-                  "Last 7 Days",
-                  style: TextStyle(color: greyText, fontSize: 14),
-                ),
+                Text("Last 7 Days", style: TextStyle(color: greyText, fontSize: 14)),
               ],
             ),
             const SizedBox(height: 20),
@@ -355,10 +229,7 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                 padding: const EdgeInsets.only(right: 16, left: 10),
                 child: LineChart(
                   LineChartData(
-                    minX: 0,
-                    maxX: 6,
-                    minY: 0,
-                    maxY: 4,
+                    minX: 0, maxX: 6, minY: 0, maxY: 4,
                     gridData: FlGridData(show: false),
                     titlesData: FlTitlesData(
                       bottomTitles: AxisTitles(
@@ -366,58 +237,27 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                           showTitles: true,
                           reservedSize: 30,
                           getTitlesWidget: (value, meta) {
-                            const days = [
-                              'MON',
-                              'TUE',
-                              'WED',
-                              'THU',
-                              'FRI',
-                              'SAT',
-                              'SUN',
-                            ];
+                            const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
                             int index = value.toInt();
                             if (index >= 0 && index < days.length) {
                               return SideTitleWidget(
                                 meta: meta,
                                 space: 10,
-                                child: Text(
-                                  days[index],
-                                  style: TextStyle(
-                                    color: index == 4
-                                        ? primaryDarkRed
-                                        : greyText,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                                child: Text(days[index], style: TextStyle(color: index == 4 ? primaryDarkRed : greyText, fontSize: 12, fontWeight: FontWeight.bold)),
                               );
                             }
                             return const SizedBox();
                           },
                         ),
                       ),
-                      leftTitles: AxisTitles(
-                        sideTitles: SideTitles(showTitles: false),
-                      ),
-                      topTitles: AxisTitles(
-                        sideTitles: SideTitles(showTitles: false),
-                      ),
-                      rightTitles: AxisTitles(
-                        sideTitles: SideTitles(showTitles: false),
-                      ),
+                      leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                     ),
                     borderData: FlBorderData(show: false),
                     lineBarsData: [
                       LineChartBarData(
-                        spots: const [
-                          FlSpot(0, 0.8),
-                          FlSpot(1, 1.4),
-                          FlSpot(2, 1.1),
-                          FlSpot(3, 1.6),
-                          FlSpot(4, 3.2),
-                          FlSpot(5, 2.0),
-                          FlSpot(6, 2.1),
-                        ],
+                        spots: const [FlSpot(0, 0.8), FlSpot(1, 1.4), FlSpot(2, 1.1), FlSpot(3, 1.6), FlSpot(4, 3.2), FlSpot(5, 2.0), FlSpot(6, 2.1)],
                         isCurved: true,
                         curveSmoothness: 0.5,
                         color: primaryDarkRed,
@@ -427,12 +267,7 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                           show: true,
                           getDotPainter: (spot, percent, barData, index) {
                             if (index == 4) {
-                              return FlDotCirclePainter(
-                                radius: 6,
-                                color: primaryDarkRed,
-                                strokeWidth: 3,
-                                strokeColor: Colors.white,
-                              );
+                              return FlDotCirclePainter(radius: 6, color: primaryDarkRed, strokeWidth: 3, strokeColor: Colors.white);
                             }
                             return FlDotCirclePainter(radius: 0);
                           },
@@ -440,43 +275,12 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                         belowBarData: BarAreaData(
                           show: true,
                           gradient: LinearGradient(
-                            colors: [
-                              primaryDarkRed.withOpacity(0.2),
-                              primaryDarkRed.withOpacity(0.0),
-                            ],
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
+                            colors: [primaryDarkRed.withOpacity(0.2), primaryDarkRed.withOpacity(0.0)],
+                            begin: Alignment.topCenter, end: Alignment.bottomCenter,
                           ),
                         ),
                       ),
                     ],
-                    lineTouchData: LineTouchData(
-                      enabled: true,
-                      getTouchedSpotIndicator:
-                          (LineChartBarData barData, List<int> spotIndexes) {
-                            return spotIndexes.map((index) {
-                              return TouchedSpotIndicatorData(
-                                FlLine(color: primaryDarkRed, strokeWidth: 2),
-                                FlDotData(show: false),
-                              );
-                            }).toList();
-                          },
-                      touchTooltipData: LineTouchTooltipData(
-                        getTooltipColor: (touchedSpot) => primaryDarkRed,
-                        tooltipRoundedRadius: 8,
-                        getTooltipItems: (touchedSpots) {
-                          return touchedSpots.map((touchedSpot) {
-                            return LineTooltipItem(
-                              '505 Steps',
-                              const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            );
-                          }).toList();
-                        },
-                      ),
-                    ),
                   ),
                 ),
               ),
@@ -485,164 +289,6 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
           ],
         ),
       ),
-    );
-  }
-
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime(2000),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: primaryDarkRed,
-              onPrimary: Colors.white,
-              onSurface: darkText,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null) {
-      setState(() {
-        _dobController.text =
-            "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
-      });
-    }
-  }
-
-  void _showDOBDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      barrierColor: const Color(0x337F0B34),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-              child: Dialog(
-                backgroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        "PLEASE CONFIRM DATE OF BIRTH",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: darkText,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      TextField(
-                        controller: _dobController,
-                        readOnly: true,
-                        onTap: () async {
-                          final DateTime? picked = await showDatePicker(
-                            context: context,
-                            initialDate: DateTime(2000),
-                            firstDate: DateTime(1900),
-                            lastDate: DateTime.now(),
-                          );
-                          if (picked != null) {
-                            setDialogState(() {
-                              _dobController.text =
-                                  "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
-                            });
-                          }
-                        },
-                        decoration: InputDecoration(
-                          hintText: "Select Date of Birth",
-                          hintStyle: TextStyle(
-                            color: greyText.withOpacity(0.5),
-                          ),
-                          filled: true,
-                          fillColor: Colors.white,
-                          suffixIcon: Icon(
-                            Icons.calendar_today_outlined,
-                            color: primaryDarkRed,
-                            size: 20,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 16,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(28),
-                            borderSide: const BorderSide(
-                              color: Color(0xFFF0D5DD),
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(28),
-                            borderSide: BorderSide(color: primaryDarkRed),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: ElevatedButton(
-                          onPressed: _handleDOBConfirm,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryDarkRed,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(28),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: const Text(
-                            "Confirm",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: primaryDarkRed, width: 1.5),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(28),
-                            ),
-                          ),
-                          child: Text(
-                            "Cancel",
-                            style: TextStyle(
-                              color: primaryDarkRed,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
     );
   }
 }
