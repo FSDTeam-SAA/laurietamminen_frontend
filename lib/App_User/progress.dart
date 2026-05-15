@@ -195,7 +195,7 @@ class _ProgressPageState extends State<ProgressPage> {
               child: Column(
                 children: [
                   Text(
-                    "Add your Today Goal",
+                    "Add Step Goals",
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,

@@ -132,7 +132,7 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
               child: Column(
                 children: [
                   Text(
-                    "Add your Today Goal",
+                    "Add Step Goals",
                     style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: darkText),
                   ),
                   const SizedBox(height: 12),
