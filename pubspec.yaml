@@ -45,6 +45,7 @@ flutter:
     - assets/images/splash_screen/
     - assets/images/bottom_nev_image/
     - assets/images/App_features/
+    - shorebird.yaml
 
 
 
