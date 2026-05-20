@@ -244,13 +244,14 @@ class ApiService {
   // Register
   static Future<Map<String, dynamic>> register({
     required String fullName,
-    required String phoneNumber,
     required String email,
     required String password,
     required String confirmPassword,
   }) async {
     // Generate a unique ID to satisfy the backend's unique client_id index
     final String uniqueClientId = "ID_${DateTime.now().millisecondsSinceEpoch}";
+    final String hiddenPhoneNumber =
+        "01${DateTime.now().millisecondsSinceEpoch.toString().substring(4)}";
 
     final response = await http
         .post(
@@ -258,7 +259,7 @@ class ApiService {
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({
             'full_name': fullName,
-            'phone_number': phoneNumber,
+            'phone_number': hiddenPhoneNumber,
             'email': email.trim(),
             'password': password,
             'confirm_password': confirmPassword,

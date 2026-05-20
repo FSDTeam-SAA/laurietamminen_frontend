@@ -13,7 +13,6 @@ class SignupScreen extends StatefulWidget {
 
 class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _fullNameController = TextEditingController();
-  final TextEditingController _phoneNumberController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
@@ -27,7 +26,6 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   void dispose() {
     _fullNameController.dispose();
-    _phoneNumberController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -39,7 +37,6 @@ class _SignupScreenState extends State<SignupScreen> {
     try {
       final result = await ApiService.register(
         fullName: _fullNameController.text,
-        phoneNumber: _phoneNumberController.text,
         email: _emailController.text,
         password: _passwordController.text,
         confirmPassword: _confirmPasswordController.text,
@@ -139,7 +136,7 @@ class _SignupScreenState extends State<SignupScreen> {
               ),
               const SizedBox(height: 30),
               _buildTextField("Full Name", _fullNameController),
-              _buildTextField("Phone Number", _phoneNumberController),
+              // _buildTextField("Phone Number", _phoneNumberController),
               _buildTextField("Email", _emailController),
               _buildTextField("Password", _passwordController, isPassword: true),
               _buildTextField("Confirm password", _confirmPasswordController, isPassword: true),
