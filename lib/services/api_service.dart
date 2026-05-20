@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http_parser/http_parser.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://187.77.187.56:8018/api';
+  static const String baseUrl = 'http://2.24.103.56:5000/api';
 
   // Check Server Health
   static Future<void> checkServerHealth() async {
@@ -26,11 +26,13 @@ class ApiService {
     final url = Uri.parse('https://httpbin.org/post');
     debugPrint("Testing connectivity at: $url");
     try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'test': 'data'}),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(
+            url,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'test': 'data'}),
+          )
+          .timeout(const Duration(seconds: 10));
       debugPrint("Test status: ${response.statusCode}");
       debugPrint("Test body: ${response.body}");
     } catch (e) {
@@ -39,7 +41,10 @@ class ApiService {
   }
 
   // Save tokens
-  static Future<void> saveTokens(String accessToken, String refreshToken) async {
+  static Future<void> saveTokens(
+    String accessToken,
+    String refreshToken,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('access_token', accessToken);
     await prefs.setString('refresh_token', refreshToken);
@@ -91,18 +96,20 @@ class ApiService {
 
     try {
       debugPrint("Refreshing access token...");
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/refresh-token'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'refresh_token': refreshToken}),
-      ).timeout(const Duration(seconds: 20));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/auth/refresh-token'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'refresh_token': refreshToken}),
+          )
+          .timeout(const Duration(seconds: 20));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success'] == true) {
           final String newAccess = data['data']['access_token'].toString();
           final String newRefresh = data['data']['refresh_token'].toString();
-          
+
           if (newAccess != "null" && newAccess.isNotEmpty) {
             await saveTokens(newAccess, newRefresh);
             debugPrint("Token refreshed successfully.");
@@ -129,13 +136,22 @@ class ApiService {
     Map<String, dynamic>? body,
   }) async {
     String? token = await getAccessToken();
-    
+
     // Check if token is invalid or the string "null"
-    if (token == null || token.isEmpty || token == "null" || token.length < 10) {
-      debugPrint("Invalid token detected for $path: $token. Triggering expiry.");
-      return {'success': false, 'message': 'Invalid session.', 'error_type': 'session_expired'};
+    if (token == null ||
+        token.isEmpty ||
+        token == "null" ||
+        token.length < 10) {
+      debugPrint(
+        "Invalid token detected for $path: $token. Triggering expiry.",
+      );
+      return {
+        'success': false,
+        'message': 'Invalid session.',
+        'error_type': 'session_expired',
+      };
     }
-    
+
     Future<http.Response> makeRequest(String? currentToken) async {
       final url = Uri.parse('$baseUrl$path');
       final headers = {
@@ -149,9 +165,21 @@ class ApiService {
         case 'GET':
           return await http.get(url, headers: headers).timeout(duration);
         case 'POST':
-          return await http.post(url, headers: headers, body: body != null ? jsonEncode(body) : null).timeout(duration);
+          return await http
+              .post(
+                url,
+                headers: headers,
+                body: body != null ? jsonEncode(body) : null,
+              )
+              .timeout(duration);
         case 'PATCH':
-          return await http.patch(url, headers: headers, body: body != null ? jsonEncode(body) : null).timeout(duration);
+          return await http
+              .patch(
+                url,
+                headers: headers,
+                body: body != null ? jsonEncode(body) : null,
+              )
+              .timeout(duration);
         case 'DELETE':
           return await http.delete(url, headers: headers).timeout(duration);
         default:
@@ -164,17 +192,21 @@ class ApiService {
 
       // Handle common token errors (401 Unauthorized or 400 with "jwt malformed")
       bool isTokenError = response.statusCode == 401;
-      
+
       // Some backends return 400 for malformed JWTs
       if (response.statusCode == 400) {
         final bodyStr = response.body.toLowerCase();
-        if (bodyStr.contains("jwt") || bodyStr.contains("token") || bodyStr.contains("malformed")) {
+        if (bodyStr.contains("jwt") ||
+            bodyStr.contains("token") ||
+            bodyStr.contains("malformed")) {
           isTokenError = true;
         }
       }
 
       if (isTokenError) {
-        debugPrint("Token error (${response.statusCode}) for $path, attempting refresh...");
+        debugPrint(
+          "Token error (${response.statusCode}) for $path, attempting refresh...",
+        );
         final refreshed = await refreshAccessToken();
         if (refreshed) {
           token = await getAccessToken();
@@ -182,14 +214,22 @@ class ApiService {
         } else {
           debugPrint("Refresh failed for $path, clearing session.");
           await clearSession();
-          return {'success': false, 'message': 'Session expired. Please login again.', 'error_type': 'session_expired'};
+          return {
+            'success': false,
+            'message': 'Session expired. Please login again.',
+            'error_type': 'session_expired',
+          };
         }
       }
 
       return jsonDecode(response.body);
     } catch (e) {
       debugPrint("Authenticated request error for $path: $e");
-      return {'success': false, 'message': 'Network error or server unreachable', 'error': e.toString()};
+      return {
+        'success': false,
+        'message': 'Network error or server unreachable',
+        'error': e.toString(),
+      };
     }
   }
 
@@ -212,45 +252,49 @@ class ApiService {
     // Generate a unique ID to satisfy the backend's unique client_id index
     final String uniqueClientId = "ID_${DateTime.now().millisecondsSinceEpoch}";
 
-    final response = await http.post(
-      Uri.parse('$baseUrl/auth/register'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'full_name': fullName,
-        'phone_number': phoneNumber,
-        'email': email.trim(),
-        'password': password,
-        'confirm_password': confirmPassword,
-        'client_id': uniqueClientId,
-      }),
-    ).timeout(const Duration(seconds: 60));
+    final response = await http
+        .post(
+          Uri.parse('$baseUrl/auth/register'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'full_name': fullName,
+            'phone_number': phoneNumber,
+            'email': email.trim(),
+            'password': password,
+            'confirm_password': confirmPassword,
+            'client_id': uniqueClientId,
+          }),
+        )
+        .timeout(const Duration(seconds: 60));
     return jsonDecode(response.body);
   }
 
   // Login
-  static Future<Map<String, dynamic>> login(String email, String password) async {
+  static Future<Map<String, dynamic>> login(
+    String email,
+    String password,
+  ) async {
     final url = Uri.parse('$baseUrl/auth/login');
     debugPrint("Hitting URL: $url");
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'Flutter/laurietamminen_frontend',
-      },
-      body: jsonEncode({
-        'email': email.trim(),
-        'password': password,
-      }),
-    ).timeout(const Duration(seconds: 60));
-    
+    final response = await http
+        .post(
+          url,
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'Flutter/laurietamminen_frontend',
+          },
+          body: jsonEncode({'email': email.trim(), 'password': password}),
+        )
+        .timeout(const Duration(seconds: 60));
+
     debugPrint("Response status: ${response.statusCode}");
     debugPrint("Response body: ${response.body}");
-    
+
     final data = jsonDecode(response.body);
     if (data['success'] == true) {
       final String access = data['data']['access_token'].toString();
       final String refresh = data['data']['refresh_token'].toString();
-      
+
       debugPrint("Saving tokens. Access length: ${access.length}");
       await saveTokens(access, refresh);
       await saveUserRole(data['data']['user']['role'].toString());
@@ -263,16 +307,19 @@ class ApiService {
     final url = Uri.parse('$baseUrl/auth/forgot-password');
     debugPrint("Hitting URL: $url");
     try {
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Connection': 'keep-alive',
-        },
-        body: jsonEncode({'email': email.trim()}),
-      ).timeout(const Duration(seconds: 60));
+      final response = await http
+          .post(
+            url,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'User-Agent':
+                  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Connection': 'keep-alive',
+            },
+            body: jsonEncode({'email': email.trim()}),
+          )
+          .timeout(const Duration(seconds: 60));
       debugPrint("Response status: ${response.statusCode}");
       debugPrint("Response body: ${response.body}");
       return jsonDecode(response.body);
@@ -284,12 +331,17 @@ class ApiService {
   }
 
   // Verify OTP
-  static Future<Map<String, dynamic>> verifyOtp(String email, String otp) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/auth/verify-otp'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email.trim(), 'otp': otp.trim()}),
-    ).timeout(const Duration(seconds: 60));
+  static Future<Map<String, dynamic>> verifyOtp(
+    String email,
+    String otp,
+  ) async {
+    final response = await http
+        .post(
+          Uri.parse('$baseUrl/auth/verify-otp'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'email': email.trim(), 'otp': otp.trim()}),
+        )
+        .timeout(const Duration(seconds: 60));
     return jsonDecode(response.body);
   }
 
@@ -299,15 +351,17 @@ class ApiService {
     required String newPassword,
     required String confirmPassword,
   }) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/auth/reset-password'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'email': email.trim(),
-        'new_password': newPassword,
-        'confirm_password': confirmPassword,
-      }),
-    ).timeout(const Duration(seconds: 60));
+    final response = await http
+        .post(
+          Uri.parse('$baseUrl/auth/reset-password'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'email': email.trim(),
+            'new_password': newPassword,
+            'confirm_password': confirmPassword,
+          }),
+        )
+        .timeout(const Duration(seconds: 60));
     return jsonDecode(response.body);
   }
 
@@ -334,7 +388,10 @@ class ApiService {
   }) async {
     Future<http.Response> makeRequest() async {
       final token = await getAccessToken();
-      var request = http.MultipartRequest('PATCH', Uri.parse('$baseUrl/users/profile'));
+      var request = http.MultipartRequest(
+        'PATCH',
+        Uri.parse('$baseUrl/users/profile'),
+      );
       request.headers['Authorization'] = 'Bearer $token';
 
       if (fullName != null) request.fields['full_name'] = fullName;
@@ -344,11 +401,13 @@ class ApiService {
       if (weight != null) request.fields['weight'] = weight.toString();
 
       if (imagePath != null) {
-        request.files.add(await http.MultipartFile.fromPath(
-          'profile_picture',
-          imagePath,
-          contentType: MediaType('image', imagePath.split('.').last),
-        ));
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'profile_picture',
+            imagePath,
+            contentType: MediaType('image', imagePath.split('.').last),
+          ),
+        );
       }
 
       final streamedResponse = await request.send();
@@ -358,13 +417,18 @@ class ApiService {
     var response = await makeRequest();
 
     if (response.statusCode == 401) {
-      debugPrint("Token expired during multipart request, attempting refresh...");
+      debugPrint(
+        "Token expired during multipart request, attempting refresh...",
+      );
       final refreshed = await refreshAccessToken();
       if (refreshed) {
         response = await makeRequest();
       } else {
         await clearSession();
-        return {'success': false, 'message': 'Session expired. Please login again.'};
+        return {
+          'success': false,
+          'message': 'Session expired. Please login again.',
+        };
       }
     }
 
@@ -377,20 +441,32 @@ class ApiService {
 
   // Update Step Goal
   static Future<Map<String, dynamic>> updateStepGoal(int stepGoal) async {
-    return await _authenticatedRequest('PATCH', '/users/step-goal', body: {'step_goal': stepGoal});
+    return await _authenticatedRequest(
+      'PATCH',
+      '/users/step-goal',
+      body: {'step_goal': stepGoal},
+    );
   }
 
   // Change Password
-  static Future<Map<String, dynamic>> changePassword(String currentPassword, String newPassword) async {
-    return await _authenticatedRequest('PATCH', '/users/change-password', body: {
-      'current_password': currentPassword,
-      'new_password': newPassword,
-    });
+  static Future<Map<String, dynamic>> changePassword(
+    String currentPassword,
+    String newPassword,
+  ) async {
+    return await _authenticatedRequest(
+      'PATCH',
+      '/users/change-password',
+      body: {'current_password': currentPassword, 'new_password': newPassword},
+    );
   }
 
   // Confirm Steps
   static Future<Map<String, dynamic>> confirmSteps(dynamic steps) async {
-    return await _authenticatedRequest('POST', '/steps/confirm', body: {'steps': steps});
+    return await _authenticatedRequest(
+      'POST',
+      '/steps/confirm',
+      body: {'steps': steps},
+    );
   }
 
   // Get Today's Steps
@@ -409,12 +485,22 @@ class ApiService {
     int page = 1,
     int limit = 10,
   }) async {
-    return await _authenticatedRequest('GET', '/admin/alerts?filter=${filter.toLowerCase()}&page=$page&limit=$limit');
+    return await _authenticatedRequest(
+      'GET',
+      '/admin/alerts?filter=${filter.toLowerCase()}&page=$page&limit=$limit',
+    );
   }
 
   // Update Alert Status
-  static Future<Map<String, dynamic>> updateAlertStatus(String alertId, String status) async {
-    return await _authenticatedRequest('PATCH', '/admin/alerts/$alertId/status', body: {'status': status.toLowerCase()});
+  static Future<Map<String, dynamic>> updateAlertStatus(
+    String alertId,
+    String status,
+  ) async {
+    return await _authenticatedRequest(
+      'PATCH',
+      '/admin/alerts/$alertId/status',
+      body: {'status': status.toLowerCase()},
+    );
   }
 
   // Get Single Alert Detail (For Admin Detail Screen)
@@ -434,17 +520,21 @@ class ApiService {
     String connectionState = "4g",
     String deviceId = "device-001",
   }) async {
-    return await _authenticatedRequest('POST', '/alerts/trigger', body: {
-      'trigger_token': triggerToken,
-      'date_of_birth': dateOfBirth,
-      'lat': lat,
-      'lng': lng,
-      'accuracy': accuracy,
-      'street_address': streetAddress,
-      'signal_strength': signalStrength,
-      'connection_state': connectionState,
-      'device_id': deviceId,
-    });
+    return await _authenticatedRequest(
+      'POST',
+      '/alerts/trigger',
+      body: {
+        'trigger_token': triggerToken,
+        'date_of_birth': dateOfBirth,
+        'lat': lat,
+        'lng': lng,
+        'accuracy': accuracy,
+        'street_address': streetAddress,
+        'signal_strength': signalStrength,
+        'connection_state': connectionState,
+        'device_id': deviceId,
+      },
+    );
   }
 
   // Update Alert Location
@@ -458,15 +548,19 @@ class ApiService {
     String connectionState = "wifi",
     String deviceId = "device-001",
   }) async {
-    return await _authenticatedRequest('PATCH', '/alerts/$alertId/location-update', body: {
-      'lat': lat,
-      'lng': lng,
-      'accuracy': accuracy,
-      'street_address': streetAddress,
-      'signal_strength': signalStrength,
-      'connection_state': connectionState,
-      'device_id': deviceId,
-    });
+    return await _authenticatedRequest(
+      'PATCH',
+      '/alerts/$alertId/location-update',
+      body: {
+        'lat': lat,
+        'lng': lng,
+        'accuracy': accuracy,
+        'street_address': streetAddress,
+        'signal_strength': signalStrength,
+        'connection_state': connectionState,
+        'device_id': deviceId,
+      },
+    );
   }
 
   // Get Activities
@@ -481,11 +575,15 @@ class ApiService {
     String? notes,
     String? entryTime,
   }) async {
-    return await _authenticatedRequest('POST', '/activities', body: {
-      'category': category,
-      'steps': steps,
-      'notes': notes ?? '',
-      'entry_time': entryTime ?? DateTime.now().toUtc().toIso8601String(),
-    });
+    return await _authenticatedRequest(
+      'POST',
+      '/activities',
+      body: {
+        'category': category,
+        'steps': steps,
+        'notes': notes ?? '',
+        'entry_time': entryTime ?? DateTime.now().toUtc().toIso8601String(),
+      },
+    );
   }
 }
