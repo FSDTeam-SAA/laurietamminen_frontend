@@ -209,7 +209,104 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
               ),
             ),
 
-            const SizedBox(height: 70),
+            const SizedBox(height: 24),
+
+            // Status Card
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFBFC).withOpacity(0.5),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: const Color(0xFFF0D5DD), width: 1.5),
+              ),
+              child: Stack(
+                children: [
+                  Positioned(
+                    right: 20,
+                    top: 20,
+                    child: Opacity(
+                      opacity: 0.1,
+                      child: Image.asset(
+                        'assets/images/bottom_nev_image/step.png',
+                        height: 100,
+                        color: primaryDarkRed,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
+                    child: Column(
+                      children: [
+                        Text(
+                          "TOTAL STEPS TODAY",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: darkText,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: RichText(
+                              text: TextSpan(
+                                children: [
+                                  TextSpan(
+                                    text: "$todaySteps",
+                                    style: TextStyle(
+                                      fontSize: 68,
+                                      fontWeight: FontWeight.bold,
+                                      color: primaryDarkRed,
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: "/${stepGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
+                                    style: TextStyle(
+                                      fontSize: 36,
+                                      fontWeight: FontWeight.bold,
+                                      color: primaryDarkRed,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0D5DD).withOpacity(0.5),
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.check_circle_rounded, color: primaryDarkRed, size: 18),
+                              const SizedBox(width: 8),
+                              Text(
+                                todaySteps >= stepGoal ? "Goal Reached" : "In Progress",
+                                style: TextStyle(
+                                  color: primaryDarkRed,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 30),
 
             // Weekly Activity Section
             Row(
