@@ -141,17 +141,19 @@ class _ProgressPageState extends State<ProgressPage> {
   Future<void> _updateGoal() async {
     if (_stepsController.text.isEmpty) return;
     
-    final goal = int.tryParse(_stepsController.text);
-    if (goal == null || goal <= 0) {
+    final inputGoal = int.tryParse(_stepsController.text);
+    if (inputGoal == null || inputGoal <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a valid step goal')),
       );
       return;
     }
 
+    final newGoal = stepGoal + inputGoal;
+
     setState(() => _isSaving = true);
     try {
-      final result = await ApiService.updateStepGoal(goal);
+      final result = await ApiService.updateStepGoal(newGoal);
       if (mounted) {
         if (result['success'] == true) {
           ScaffoldMessenger.of(context).showSnackBar(
