@@ -24,7 +24,8 @@ class _WelcomeOnboardingState extends State<WelcomeOnboarding> {
     _pageController.dispose();
     super.dispose();
   }
-// 
+
+  //
   void _nextPage() {
     if (_currentPage < 3) {
       _pageController.animateToPage(
@@ -97,9 +98,9 @@ class _WelcomeOnboardingState extends State<WelcomeOnboarding> {
         ),
         const Spacer(),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 40),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
           child: Text(
-            "Stay active and monitor your daily and weekly steps. Add steps here from your choice of step tracker.",
+            "Stay active and monitor your daily and \n weekly steps. Add steps here from your \n choice of step tracker.",
             textAlign: TextAlign.center,
             style: TextStyle(color: greyText, fontSize: 16, height: 1.5),
           ),
@@ -118,7 +119,7 @@ class _WelcomeOnboardingState extends State<WelcomeOnboarding> {
           width: double.infinity,
           fit: BoxFit.fitWidth,
         ),
-        const SizedBox(height: 30),
+        const SizedBox(height: 10),
         Text(
           "Track Your Steps",
           style: TextStyle(
@@ -127,11 +128,11 @@ class _WelcomeOnboardingState extends State<WelcomeOnboarding> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 10),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 40),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
           child: Text(
-            "Log your daily steps and review weekly step totals",
+            "Log your daily steps and review weekly\nstep totals",
             textAlign: TextAlign.center,
             style: TextStyle(color: greyText, fontSize: 16, height: 1.5),
           ),
@@ -150,7 +151,7 @@ class _WelcomeOnboardingState extends State<WelcomeOnboarding> {
           width: double.infinity,
           fit: BoxFit.fitWidth,
         ),
-        const SizedBox(height: 30),
+        const SizedBox(height: 10),
         Text(
           "Your Data, Your Control",
           style: TextStyle(
@@ -159,9 +160,9 @@ class _WelcomeOnboardingState extends State<WelcomeOnboarding> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 10),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 40),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
           child: Text(
             "We respect your privacy and keep your\ndata secure.",
             textAlign: TextAlign.center,
@@ -206,7 +207,9 @@ class _WelcomeOnboardingState extends State<WelcomeOnboarding> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const LoginScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const LoginScreen(),
+                      ),
                     );
                   },
                   style: ElevatedButton.styleFrom(
@@ -234,7 +237,9 @@ class _WelcomeOnboardingState extends State<WelcomeOnboarding> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const SignupScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const SignupScreen(),
+                      ),
                     );
                   },
                   style: OutlinedButton.styleFrom(
