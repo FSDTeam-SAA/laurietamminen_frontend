@@ -394,6 +394,11 @@ class _ClientAddStepsPageState extends State<ClientAddStepsPage> {
                       ),
                       const SizedBox(height: 24),
                       SizedBox(width: double.infinity, height: 56, child: ElevatedButton(onPressed: _handleDOBConfirm, style: ElevatedButton.styleFrom(backgroundColor: primaryDarkRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28))), child: const Text("Confirm", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)))),
+                      const SizedBox(height: 12),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text("Cancel", style: TextStyle(color: greyText, fontSize: 16, fontWeight: FontWeight.bold)),
+                      ),
                     ],
                   ),
                 ),
