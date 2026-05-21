@@ -211,12 +211,18 @@ class _ClientAddStepsPageState extends State<ClientAddStepsPage> {
                   children: [
                     Text("TOTAL DAILY STEPS", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: greyText.withOpacity(0.7))),
                     const SizedBox(height: 8),
-                    RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(text: "$todaySteps", style: TextStyle(fontSize: 64, fontWeight: FontWeight.bold, color: primaryDarkRed)),
-                          TextSpan(text: "/${stepGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: primaryDarkRed)),
-                        ],
+                    SizedBox(
+                      width: double.infinity,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: RichText(
+                          text: TextSpan(
+                            children: [
+                              TextSpan(text: "$todaySteps", style: TextStyle(fontSize: 44, fontWeight: FontWeight.bold, color: primaryDarkRed)),
+                              TextSpan(text: "/${stepGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: primaryDarkRed)),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ],
