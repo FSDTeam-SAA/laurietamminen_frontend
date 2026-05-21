@@ -329,6 +329,8 @@ class _ClientsNotificationScreenState extends State<ClientsNotificationScreen> {
       statusTextColor = const Color(0xFF388E3C); // Green
     }
 
+    String displayStatus = status.toUpperCase().replaceAll('_', ' ');
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -424,7 +426,7 @@ class _ClientsNotificationScreenState extends State<ClientsNotificationScreen> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
-                        status,
+                        displayStatus,
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w900,
@@ -489,10 +491,10 @@ class _ClientsNotificationScreenState extends State<ClientsNotificationScreen> {
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: status == "PENDING"
+                      backgroundColor: statusKey == "pending"
                           ? primaryDarkRed
                           : const Color(0xFFFDE6ED),
-                      foregroundColor: status == "PENDING"
+                      foregroundColor: statusKey == "pending"
                           ? Colors.white
                           : primaryDarkRed,
                       elevation: 0,

@@ -476,7 +476,7 @@ class _ClientsDetailsScreenState extends State<ClientsDetailsScreen> {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  "Status: ${status.toUpperCase()}",
+                                  "Status: ${status.toUpperCase().replaceAll('_', ' ')}",
                                   style: TextStyle(color: chipText, fontSize: 13, fontWeight: FontWeight.w900),
                                 ),
                               ],
