@@ -28,10 +28,7 @@ class _ClientUserDashboardScreenState extends State<ClientUserDashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFEEAEF),
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
-      ),
+      body: _pages[_currentIndex],
       bottomNavigationBar: CustomBottomNavigation(
         currentIndex: _currentIndex,
         onTap: (index) {
