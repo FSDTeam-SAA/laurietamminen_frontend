@@ -282,7 +282,7 @@ class ApiService {
           url,
           headers: {
             'Content-Type': 'application/json',
-            'User-Agent': 'Flutter/laurietamminen_frontend',
+            'User-Agent': 'Flutter/solidsteps_frontend',
           },
           body: jsonEncode({'email': email.trim(), 'password': password}),
         )

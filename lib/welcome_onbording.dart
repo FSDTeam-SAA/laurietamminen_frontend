@@ -91,10 +91,21 @@ class _WelcomeOnboardingState extends State<WelcomeOnboarding> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
-        Image.asset(
-          'assets/images/splash_screen/onbording_image1.png.png',
-          width: double.infinity,
-          fit: BoxFit.fitWidth,
+        ShaderMask(
+          shaderCallback: (rect) {
+            return const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Colors.black, Colors.transparent],
+              stops: [1.1, 1.0],
+            ).createShader(Rect.fromLTRB(0, 0, rect.width, rect.height));
+          },
+          blendMode: BlendMode.dstIn,
+          child: Image.asset(
+            'assets/images/splash_screen/onbording_image1.png.png',
+            width: double.infinity,
+            fit: BoxFit.fitWidth,
+          ),
         ),
         const Spacer(),
         Padding(
@@ -114,10 +125,21 @@ class _WelcomeOnboardingState extends State<WelcomeOnboarding> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
-        Image.asset(
-          'assets/images/splash_screen/onbording_image2.png.png',
-          width: double.infinity,
-          fit: BoxFit.fitWidth,
+        ShaderMask(
+          shaderCallback: (rect) {
+            return const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Colors.black, Colors.transparent],
+              stops: [0.86, 1.0],
+            ).createShader(Rect.fromLTRB(0, 0, rect.width, rect.height));
+          },
+          blendMode: BlendMode.dstIn,
+          child: Image.asset(
+            'assets/images/splash_screen/onbording_image2.png.png',
+            width: double.infinity,
+            fit: BoxFit.fitWidth,
+          ),
         ),
         const SizedBox(height: 10),
         Text(
@@ -146,10 +168,21 @@ class _WelcomeOnboardingState extends State<WelcomeOnboarding> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
-        Image.asset(
-          'assets/images/splash_screen/onbording_image3.png.png',
-          width: double.infinity,
-          fit: BoxFit.fitWidth,
+        ShaderMask(
+          shaderCallback: (rect) {
+            return const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Colors.black, Colors.transparent],
+              stops: [0.9, 1.0],
+            ).createShader(Rect.fromLTRB(0, 0, rect.width, rect.height));
+          },
+          blendMode: BlendMode.dstIn,
+          child: Image.asset(
+            'assets/images/splash_screen/onbording_image3.png.png',
+            width: double.infinity,
+            fit: BoxFit.fitWidth,
+          ),
         ),
         const SizedBox(height: 10),
         Text(
