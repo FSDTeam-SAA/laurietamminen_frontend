@@ -108,12 +108,15 @@ class _WelcomeOnboardingState extends State<WelcomeOnboarding> {
           ),
         ),
         const Spacer(),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: Text(
-            "Stay active and monitor your daily and \n weekly steps. Add steps here from your \n choice of step tracker.",
-            textAlign: TextAlign.center,
-            style: TextStyle(color: greyText, fontSize: 16, height: 1.5),
+        Transform.translate(
+          offset: const Offset(0, -20),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Text(
+              "Stay active and monitor your daily and \n weekly steps. Add steps here from your \n choice of step tracker.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: greyText, fontSize: 16, height: 1.5),
+            ),
           ),
         ),
         const Spacer(),
@@ -141,22 +144,28 @@ class _WelcomeOnboardingState extends State<WelcomeOnboarding> {
             fit: BoxFit.fitWidth,
           ),
         ),
-        const SizedBox(height: 10),
-        Text(
-          "Track Your Steps",
-          style: TextStyle(
-            color: darkText,
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: Text(
-            "Log your daily steps and review weekly\nstep totals",
-            textAlign: TextAlign.center,
-            style: TextStyle(color: greyText, fontSize: 16, height: 1.5),
+        Transform.translate(
+          offset: const Offset(0, -20),
+          child: Column(
+            children: [
+              Text(
+                "Track Your Steps",
+                style: TextStyle(
+                  color: darkText,
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Text(
+                  "Log your daily steps and review weekly\nstep totals",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: greyText, fontSize: 16, height: 1.5),
+                ),
+              ),
+            ],
           ),
         ),
         const Spacer(),
@@ -184,22 +193,28 @@ class _WelcomeOnboardingState extends State<WelcomeOnboarding> {
             fit: BoxFit.fitWidth,
           ),
         ),
-        const SizedBox(height: 10),
-        Text(
-          "Your Data, Your Control",
-          style: TextStyle(
-            color: darkText,
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: Text(
-            "We respect your privacy and keep your\ndata secure.",
-            textAlign: TextAlign.center,
-            style: TextStyle(color: greyText, fontSize: 16, height: 1.5),
+        Transform.translate(
+          offset: const Offset(0, -8),
+          child: Column(
+            children: [
+              Text(
+                "Your Data, Your Control",
+                style: TextStyle(
+                  color: darkText,
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Text(
+                  "We respect your privacy and keep your\ndata secure.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: greyText, fontSize: 16, height: 1.5),
+                ),
+              ),
+            ],
           ),
         ),
         const Spacer(),
