@@ -241,7 +241,7 @@ class _ProgressPageState extends State<ProgressPage> {
                   const SizedBox(height: 16),
                   TextField(
                     controller: _stepsController,
-                    keyboardType: TextInputType.number,
+                    keyboardType: TextInputType.text,
                     decoration: InputDecoration(
                       hintText: "Enter goal (e.g. 10000)",
                       hintStyle: TextStyle(color: greyText.withOpacity(0.5)),

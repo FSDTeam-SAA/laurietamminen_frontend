@@ -309,6 +309,7 @@ class _ClientAddStepsPageState extends State<ClientAddStepsPage> {
                       const SizedBox(height: 20),
                       TextField(
                         controller: _stepsController,
+                        keyboardType: TextInputType.text,
                         decoration: InputDecoration(
                           hintText: "Enter steps...",
                           filled: true,

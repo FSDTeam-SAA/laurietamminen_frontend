@@ -405,7 +405,7 @@ class _AddStepsPageState extends State<AddStepsPage> {
                       const SizedBox(height: 20),
                       TextField(
                         controller: _stepsController,
-                        keyboardType: TextInputType.number,
+                        keyboardType: TextInputType.text,
                         decoration: InputDecoration(
                           hintText: "Enter steps...",
                           hintStyle: TextStyle(color: greyText.withOpacity(0.5)),
