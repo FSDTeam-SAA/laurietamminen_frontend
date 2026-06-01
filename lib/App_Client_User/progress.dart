@@ -184,7 +184,7 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                     controller: _stepsController,
                     keyboardType: TextInputType.text,
                     decoration: InputDecoration(
-                      hintText: "Enter goals...",
+                      hintText: "Enter goal...",
                       hintStyle: TextStyle(color: greyText.withOpacity(0.5)),
                       filled: true,
                       fillColor: Colors.white,
@@ -286,16 +286,15 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                               text: TextSpan(
                                 children: [
                                   TextSpan(
-                                    text: "$todaySteps",
+                                    text: "${stepGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
                                     style: TextStyle(
-                                      fontSize: 68,
+                                      fontSize: 36,
                                       fontWeight: FontWeight.bold,
                                       color: primaryDarkRed,
                                     ),
                                   ),
                                   TextSpan(
-                                    text:
-                                        "/${stepGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
+                                    text: "/$todaySteps",
                                     style: TextStyle(
                                       fontSize: 36,
                                       fontWeight: FontWeight.bold,

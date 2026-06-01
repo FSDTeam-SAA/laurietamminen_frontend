@@ -275,7 +275,7 @@ class _HomeContentState extends State<_HomeContent> {
                               text: TextSpan(
                                 children: [
                                   TextSpan(
-                                    text: "$todaySteps",
+                                    text: "${stepGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
                                     style: const TextStyle(
                                       fontSize: 32,
                                       fontWeight: FontWeight.bold,
@@ -283,7 +283,7 @@ class _HomeContentState extends State<_HomeContent> {
                                     ),
                                   ),
                                   TextSpan(
-                                    text: "/${stepGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
+                                    text: "/$todaySteps",
                                     style: const TextStyle(
                                       fontSize: 32,
                                       fontWeight: FontWeight.bold,

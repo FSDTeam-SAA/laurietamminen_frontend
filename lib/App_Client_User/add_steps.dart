@@ -218,8 +218,8 @@ class _ClientAddStepsPageState extends State<ClientAddStepsPage> {
                         child: RichText(
                           text: TextSpan(
                             children: [
-                              TextSpan(text: "$todaySteps", style: TextStyle(fontSize: 44, fontWeight: FontWeight.bold, color: primaryDarkRed)),
-                              TextSpan(text: "/${stepGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: primaryDarkRed)),
+                              TextSpan(text: "${stepGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: primaryDarkRed)),
+                              TextSpan(text: "/$todaySteps", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: primaryDarkRed)),
                             ],
                           ),
                         ),
