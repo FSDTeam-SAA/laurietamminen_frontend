@@ -46,15 +46,15 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
         ApiService.getProfile(),
         ApiService.getTodaySteps(),
       ]);
-      
+
       if (!mounted) return;
-      
+
       if (results[0]['success'] == true) {
         setState(() {
           stepGoal = results[0]['data']['step_goal'] ?? 0;
         });
       }
-      
+
       if (results[1]['success'] == true) {
         setState(() {
           todaySteps = results[1]['data']?['steps'] ?? 0;
@@ -69,13 +69,17 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
   Future<void> _handleConfirm() async {
     final stepsInput = _stepsController.text.trim();
     if (stepsInput.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter steps")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Please enter steps")));
       return;
     }
 
     final inputSteps = double.tryParse(stepsInput);
     if (inputSteps == null || inputSteps <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter a valid number")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter a valid number")),
+      );
       return;
     }
 
@@ -105,7 +109,9 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: $e")));
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -133,13 +139,21 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                 children: [
                   Text(
                     "Add Step Goals",
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: darkText),
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: darkText,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Text(
-                   "Please add your step goal for today and \n click set goal to confirm",
+                    "Please add your step goal for today and \n click set goal to confirm",
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, color: greyText, height: 1.4),
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: greyText,
+                      height: 1.4,
+                    ),
                   ),
                 ],
               ),
@@ -158,19 +172,26 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "PLEASE ENTER YOUR STEPS FOR TODAY",
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: darkText),
+                    "PLEASE ENTER YOUR GOALS FOR TODAY",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: darkText,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: _stepsController,
                     keyboardType: TextInputType.text,
                     decoration: InputDecoration(
-                      hintText: "Enter steps...",
+                      hintText: "Enter goals...",
                       hintStyle: TextStyle(color: greyText.withOpacity(0.5)),
                       filled: true,
                       fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(28),
                         borderSide: const BorderSide(color: Color(0xFFF0D5DD)),
@@ -194,14 +215,20 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                       onPressed: _isSubmitting ? null : _handleConfirm,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryDarkRed,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(28),
+                        ),
                         elevation: 0,
                       ),
                       child: _isSubmitting
                           ? const CircularProgressIndicator(color: Colors.white)
                           : const Text(
                               "Confirm",
-                              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                     ),
                   ),
@@ -235,7 +262,10 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                   ),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 30,
+                      horizontal: 20,
+                    ),
                     child: Column(
                       children: [
                         Text(
@@ -264,7 +294,8 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                                     ),
                                   ),
                                   TextSpan(
-                                    text: "/${stepGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
+                                    text:
+                                        "/${stepGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
                                     style: TextStyle(
                                       fontSize: 36,
                                       fontWeight: FontWeight.bold,
@@ -278,7 +309,10 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                         ),
                         const SizedBox(height: 20),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 10,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF0D5DD).withOpacity(0.5),
                             borderRadius: BorderRadius.circular(24),
@@ -286,10 +320,16 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.check_circle_rounded, color: primaryDarkRed, size: 18),
+                              Icon(
+                                Icons.check_circle_rounded,
+                                color: primaryDarkRed,
+                                size: 18,
+                              ),
                               const SizedBox(width: 8),
                               Text(
-                                todaySteps >= stepGoal ? "Goal Reached" : "In Progress",
+                                todaySteps >= stepGoal
+                                    ? "Goal Reached"
+                                    : "In Progress",
                                 style: TextStyle(
                                   color: primaryDarkRed,
                                   fontWeight: FontWeight.bold,
@@ -305,7 +345,7 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 30),
 
             // Weekly Activity Section
@@ -314,9 +354,16 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
               children: [
                 Text(
                   "Weekly Activity",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: darkText),
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: darkText,
+                  ),
                 ),
-                Text("Last 7 Days", style: TextStyle(color: greyText, fontSize: 14)),
+                Text(
+                  "Last 7 Days",
+                  style: TextStyle(color: greyText, fontSize: 14),
+                ),
               ],
             ),
             const SizedBox(height: 20),
@@ -326,7 +373,10 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                 padding: const EdgeInsets.only(right: 16, left: 10),
                 child: LineChart(
                   LineChartData(
-                    minX: 0, maxX: 6, minY: 0, maxY: 4,
+                    minX: 0,
+                    maxX: 6,
+                    minY: 0,
+                    maxY: 4,
                     gridData: FlGridData(show: false),
                     titlesData: FlTitlesData(
                       bottomTitles: AxisTitles(
@@ -334,27 +384,58 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                           showTitles: true,
                           reservedSize: 30,
                           getTitlesWidget: (value, meta) {
-                            const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+                            const days = [
+                              'MON',
+                              'TUE',
+                              'WED',
+                              'THU',
+                              'FRI',
+                              'SAT',
+                              'SUN',
+                            ];
                             int index = value.toInt();
                             if (index >= 0 && index < days.length) {
                               return SideTitleWidget(
                                 meta: meta,
                                 space: 10,
-                                child: Text(days[index], style: TextStyle(color: index == 4 ? primaryDarkRed : greyText, fontSize: 12, fontWeight: FontWeight.bold)),
+                                child: Text(
+                                  days[index],
+                                  style: TextStyle(
+                                    color: index == 4
+                                        ? primaryDarkRed
+                                        : greyText,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               );
                             }
                             return const SizedBox();
                           },
                         ),
                       ),
-                      leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      leftTitles: AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      topTitles: AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      rightTitles: AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
                     ),
                     borderData: FlBorderData(show: false),
                     lineBarsData: [
                       LineChartBarData(
-                        spots: const [FlSpot(0, 0.8), FlSpot(1, 1.4), FlSpot(2, 1.1), FlSpot(3, 1.6), FlSpot(4, 3.2), FlSpot(5, 2.0), FlSpot(6, 2.1)],
+                        spots: const [
+                          FlSpot(0, 0.8),
+                          FlSpot(1, 1.4),
+                          FlSpot(2, 1.1),
+                          FlSpot(3, 1.6),
+                          FlSpot(4, 3.2),
+                          FlSpot(5, 2.0),
+                          FlSpot(6, 2.1),
+                        ],
                         isCurved: true,
                         curveSmoothness: 0.5,
                         color: primaryDarkRed,
@@ -364,7 +445,12 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                           show: true,
                           getDotPainter: (spot, percent, barData, index) {
                             if (index == 4) {
-                              return FlDotCirclePainter(radius: 6, color: primaryDarkRed, strokeWidth: 3, strokeColor: Colors.white);
+                              return FlDotCirclePainter(
+                                radius: 6,
+                                color: primaryDarkRed,
+                                strokeWidth: 3,
+                                strokeColor: Colors.white,
+                              );
                             }
                             return FlDotCirclePainter(radius: 0);
                           },
@@ -372,8 +458,12 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                         belowBarData: BarAreaData(
                           show: true,
                           gradient: LinearGradient(
-                            colors: [primaryDarkRed.withOpacity(0.2), primaryDarkRed.withOpacity(0.0)],
-                            begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                            colors: [
+                              primaryDarkRed.withOpacity(0.2),
+                              primaryDarkRed.withOpacity(0.0),
+                            ],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
                           ),
                         ),
                       ),
