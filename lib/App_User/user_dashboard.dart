@@ -277,7 +277,7 @@ class _HomeContentState extends State<_HomeContent> {
                                   TextSpan(
                                     text: "$todaySteps",
                                     style: const TextStyle(
-                                      fontSize: 64,
+                                      fontSize: 32,
                                       fontWeight: FontWeight.bold,
                                       color: Color(0xFF800B39),
                                     ),
@@ -323,7 +323,7 @@ class _HomeContentState extends State<_HomeContent> {
               ),
               const SizedBox(height: 8),
               Text(
-                "You're ${(todaySteps / stepGoal * 100).toStringAsFixed(0)}% of the way to your daily goal.\nKeep the flow going, $fullName.",
+                "You're ${(stepGoal == 0 ? 0.0 : (todaySteps / stepGoal * 100)).toStringAsFixed(0)}% of the way to your daily goal.\nKeep the flow going, $fullName.",
                 style: const TextStyle(
                   fontSize: 16,
                   color: Color(0xFF8A606A),
@@ -342,7 +342,7 @@ class _HomeContentState extends State<_HomeContent> {
                     ),
                   ),
                   FractionallySizedBox(
-                    widthFactor: (todaySteps / stepGoal).clamp(0.0, 1.0),
+                    widthFactor: stepGoal == 0 ? 0.0 : (todaySteps / stepGoal).clamp(0.0, 1.0),
                     child: Container(
                       height: 14,
                       decoration: BoxDecoration(

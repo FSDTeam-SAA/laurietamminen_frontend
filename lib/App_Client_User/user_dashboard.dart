@@ -50,12 +50,30 @@ class _HomeContent extends StatefulWidget {
 
 class _HomeContentState extends State<_HomeContent> {
   Map<String, dynamic>? userProfile;
+  int todaySteps = 0;
+  int streak = 0;
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchProfile();
+    _fetchInitialData();
+  }
+
+  Future<void> _fetchInitialData() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
+    try {
+      await Future.wait([
+        _fetchProfile(),
+        _fetchTodaySteps(),
+        _fetchWeeklyData(),
+      ]);
+    } catch (e) {
+      debugPrint("Error in _fetchInitialData: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   void _handleSessionExpired() {
@@ -71,8 +89,6 @@ class _HomeContentState extends State<_HomeContent> {
   }
 
   Future<void> _fetchProfile() async {
-    if (!mounted) return;
-    setState(() => _isLoading = true);
     try {
       final result = await ApiService.getProfile();
       if (!mounted) return;
@@ -85,8 +101,38 @@ class _HomeContentState extends State<_HomeContent> {
       }
     } catch (e) {
       debugPrint("Error fetching profile: $e");
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _fetchTodaySteps() async {
+    try {
+      final result = await ApiService.getTodaySteps();
+      if (!mounted) return;
+      if (result['success'] == true) {
+        setState(() {
+          todaySteps = result['data']?['steps'] ?? 0;
+        });
+      } else if (result['error_type'] == 'session_expired') {
+        _handleSessionExpired();
+      }
+    } catch (e) {
+      debugPrint("Error fetching steps: $e");
+    }
+  }
+
+  Future<void> _fetchWeeklyData() async {
+    try {
+      final result = await ApiService.getWeeklySteps();
+      if (!mounted) return;
+      if (result['success'] == true) {
+        setState(() {
+          streak = result['data']?['streak']?['current_streak'] ?? 0;
+        });
+      } else if (result['error_type'] == 'session_expired') {
+        _handleSessionExpired();
+      }
+    } catch (e) {
+      debugPrint("Error fetching weekly data: $e");
     }
   }
 
@@ -97,12 +143,12 @@ class _HomeContentState extends State<_HomeContent> {
     }
 
     final String fullName = userProfile?['full_name'] ?? "User";
-    final int stepGoal = userProfile?['step_goal'] ?? 10000;
+    final int stepGoal = userProfile?['step_goal'] ?? 0;
 
     return SafeArea(
       child: RefreshIndicator(
         color: const Color(0xFF800B39),
-        onRefresh: _fetchProfile,
+        onRefresh: _fetchInitialData,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
@@ -125,11 +171,12 @@ class _HomeContentState extends State<_HomeContent> {
                     ),
                   ),
                   GestureDetector(
-                    onTap: () {
-                      Navigator.push(
+                    onTap: () async {
+                      await Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => const ClientEditProfilePage()),
                       );
+                      _fetchInitialData(); // Refresh data when returning
                     },
                     child: Container(
                       padding: const EdgeInsets.all(2),
@@ -186,16 +233,16 @@ class _HomeContentState extends State<_HomeContent> {
                           margin: const EdgeInsets.symmetric(horizontal: 3),
                           height: 5,
                           decoration: BoxDecoration(
-                            color: index < 4 ? const Color(0xFF800B39) : const Color(0xFFD3E1DD),
+                            color: index < streak ? const Color(0xFF800B39) : const Color(0xFFD3E1DD),
                             borderRadius: BorderRadius.circular(2.5),
                           ),
                         ),
                       )),
                     ),
                     const SizedBox(height: 16),
-                    const Text(
-                      "4 days tracking consistently! Keep it up.",
-                      style: TextStyle(
+                    Text(
+                      "$streak days tracking consistently! Keep it up.",
+                      style: const TextStyle(
                         fontSize: 14,
                         color: Color(0xFF8A606A),
                         fontWeight: FontWeight.w500,
@@ -228,10 +275,10 @@ class _HomeContentState extends State<_HomeContent> {
                             child: RichText(
                               text: TextSpan(
                                 children: [
-                                  const TextSpan(
-                                    text: "100",
-                                    style: TextStyle(
-                                      fontSize: 64,
+                                  TextSpan(
+                                    text: "$todaySteps",
+                                    style: const TextStyle(
+                                      fontSize: 32,
                                       fontWeight: FontWeight.bold,
                                       color: Color(0xFF800B39),
                                     ),
@@ -277,7 +324,7 @@ class _HomeContentState extends State<_HomeContent> {
               ),
               const SizedBox(height: 8),
               Text(
-                "You're ${(100 / stepGoal * 100).toStringAsFixed(0)}% of the way to your daily goal.\nKeep the flow going, $fullName.",
+                "You're ${(stepGoal == 0 ? 0.0 : (todaySteps / stepGoal * 100)).toStringAsFixed(0)}% of the way to your daily goal.\nKeep the flow going, $fullName.",
                 style: const TextStyle(
                   fontSize: 16,
                   color: Color(0xFF8A606A),
@@ -296,7 +343,7 @@ class _HomeContentState extends State<_HomeContent> {
                     ),
                   ),
                   FractionallySizedBox(
-                    widthFactor: (100 / stepGoal).clamp(0.0, 1.0),
+                    widthFactor: stepGoal == 0 ? 0.0 : (todaySteps / stepGoal).clamp(0.0, 1.0),
                     child: Container(
                       height: 14,
                       decoration: BoxDecoration(
