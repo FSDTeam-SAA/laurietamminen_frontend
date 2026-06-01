@@ -127,10 +127,11 @@ class _AddStepsPageState extends State<AddStepsPage> {
   }
 
   Future<void> _confirmSteps() async {
-    if (_stepsController.text.isEmpty) return;
+    final String input = _stepsController.text.trim();
+    if (input.isEmpty) return;
     
-    final inputSteps = int.tryParse(_stepsController.text);
-    if (inputSteps == null || inputSteps <= 0) {
+    final inputSteps = double.tryParse(input);
+    if (inputSteps != null && inputSteps <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a valid number of steps')),
       );
@@ -140,8 +141,6 @@ class _AddStepsPageState extends State<AddStepsPage> {
     if (!mounted) return;
     setState(() => _isSaving = true);
     try {
-      final String input = _stepsController.text.trim();
-      final inputSteps = double.tryParse(input);
       Map<String, dynamic> result;
 
       if (inputSteps == null) {
@@ -250,7 +249,7 @@ class _AddStepsPageState extends State<AddStepsPage> {
                           text: TextSpan(
                             children: [
                               TextSpan(
-                                text: "${stepGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
+                                text: todaySteps.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},'),
                                 style: TextStyle(
                                   fontSize: 28,
                                   fontWeight: FontWeight.bold,
@@ -258,7 +257,7 @@ class _AddStepsPageState extends State<AddStepsPage> {
                                 ),
                               ),
                               TextSpan(
-                                text: "/$todaySteps",
+                                text: "/${stepGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
                                 style: TextStyle(
                                   fontSize: 28,
                                   fontWeight: FontWeight.bold,
@@ -395,7 +394,7 @@ class _AddStepsPageState extends State<AddStepsPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "Track Steps Toward Your Goals",
+                        "Add your Daily Steps",
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -503,7 +502,7 @@ class _AddStepsPageState extends State<AddStepsPage> {
             ),
           ),
         ),
-      ),
+      ),//
     );
   }
 }

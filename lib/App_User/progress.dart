@@ -25,7 +25,7 @@ class _ProgressPageState extends State<ProgressPage> {
   List<double> weeklySteps = [0, 0, 0, 0, 0, 0, 0];
   List<String> dayLabels = ["", "", "", "", "", "", ""];
   double maxWeeklySteps = 10000;
-
+//
   @override
   void initState() {
     super.initState();
@@ -105,7 +105,7 @@ class _ProgressPageState extends State<ProgressPage> {
         for (int i = 0; i < data.length && i < 7; i++) {
           steps[i] = (data[i]['steps'] ?? 0).toDouble();
           if (steps[i] > currentMax) currentMax = steps[i];
-          
+
           if (data[i]['date'] != null) {
             final date = DateTime.parse(data[i]['date']);
             labels[i] = _getDayName(date.weekday);
@@ -127,20 +127,28 @@ class _ProgressPageState extends State<ProgressPage> {
 
   String _getDayName(int weekday) {
     switch (weekday) {
-      case 1: return "Mon";
-      case 2: return "Tue";
-      case 3: return "Wed";
-      case 4: return "Thu";
-      case 5: return "Fri";
-      case 6: return "Sat";
-      case 7: return "Sun";
-      default: return "";
+      case 1:
+        return "SAT";
+      case 2:
+        return "SUN";
+      case 3:
+        return "MON";
+      case 4:
+        return "TUE";
+      case 5:
+        return "WED";
+      case 6:
+        return "THU";
+      case 7:
+        return "FRI";
+      default:
+        return "";
     }
   }
 
   Future<void> _updateGoal() async {
     if (_stepsController.text.isEmpty) return;
-    
+
     final inputGoal = int.tryParse(_stepsController.text);
     if (inputGoal == null || inputGoal <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -149,7 +157,7 @@ class _ProgressPageState extends State<ProgressPage> {
       return;
     }
 
-    final newGoal = stepGoal + inputGoal;
+    final newGoal = inputGoal;
 
     setState(() => _isSaving = true);
     try {
@@ -163,15 +171,17 @@ class _ProgressPageState extends State<ProgressPage> {
           _fetchInitialData(); // Refresh data
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['message'] ?? 'Failed to update goal')),
+            SnackBar(
+              content: Text(result['message'] ?? 'Failed to update goal'),
+            ),
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -218,7 +228,7 @@ class _ProgressPageState extends State<ProgressPage> {
               ),
             ),
             const SizedBox(height: 30),
-            
+
             // Input Card
             Container(
               padding: const EdgeInsets.all(20),
@@ -231,7 +241,7 @@ class _ProgressPageState extends State<ProgressPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "PLEASE SET YOUR DAILY STEP GOAL",
+                    "PLEASE ENTER YOUR GOALS FOR TODAY",
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -243,11 +253,14 @@ class _ProgressPageState extends State<ProgressPage> {
                     controller: _stepsController,
                     keyboardType: TextInputType.text,
                     decoration: InputDecoration(
-                      hintText: "Enter goal (e.g. 10000)",
+                      hintText: "Enter goal",
                       hintStyle: TextStyle(color: greyText.withOpacity(0.5)),
                       filled: true,
                       fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(28),
                         borderSide: const BorderSide(color: Color(0xFFF0D5DD)),
@@ -260,7 +273,7 @@ class _ProgressPageState extends State<ProgressPage> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    "setting a goal helps you stay motivated!",
+                    "set a goal helps you stay motivated!",
                     style: TextStyle(fontSize: 12, color: greyText),
                   ),
                   const SizedBox(height: 20),
@@ -277,23 +290,23 @@ class _ProgressPageState extends State<ProgressPage> {
                         elevation: 0,
                       ),
                       child: _isSaving
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                          "Set Goal",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text(
+                              "Set Goal",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                   ),
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Status Card
             Container(
               padding: const EdgeInsets.all(10),
@@ -318,7 +331,10 @@ class _ProgressPageState extends State<ProgressPage> {
                   ),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 30,
+                      horizontal: 20,
+                    ),
                     child: Column(
                       children: [
                         Text(
@@ -339,7 +355,7 @@ class _ProgressPageState extends State<ProgressPage> {
                               text: TextSpan(
                                 children: [
                                   TextSpan(
-                                    text: "${stepGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
+                                    text: todaySteps.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},'),
                                     style: TextStyle(
                                       fontSize: 36,
                                       fontWeight: FontWeight.bold,
@@ -347,7 +363,7 @@ class _ProgressPageState extends State<ProgressPage> {
                                     ),
                                   ),
                                   TextSpan(
-                                    text: "/$todaySteps",
+                                    text: "/${stepGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
                                     style: TextStyle(
                                       fontSize: 36,
                                       fontWeight: FontWeight.bold,
@@ -361,7 +377,10 @@ class _ProgressPageState extends State<ProgressPage> {
                         ),
                         const SizedBox(height: 20),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 10,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF0D5DD).withOpacity(0.5),
                             borderRadius: BorderRadius.circular(24),
@@ -369,10 +388,16 @@ class _ProgressPageState extends State<ProgressPage> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.check_circle_rounded, color: primaryDarkRed, size: 18),
+                              Icon(
+                                Icons.check_circle_rounded,
+                                color: primaryDarkRed,
+                                size: 18,
+                              ),
                               const SizedBox(width: 8),
                               Text(
-                                todaySteps >= stepGoal ? "Goal Reached" : "In Progress",
+                                todaySteps >= stepGoal
+                                    ? "Goal Reached"
+                                    : "In Progress",
                                 style: TextStyle(
                                   color: primaryDarkRed,
                                   fontWeight: FontWeight.bold,
@@ -388,9 +413,9 @@ class _ProgressPageState extends State<ProgressPage> {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 30),
-            
+
             // Weekly Activity Section
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -425,16 +450,25 @@ class _ProgressPageState extends State<ProgressPage> {
                       bottomTitles: AxisTitles(
                         sideTitles: SideTitles(
                           showTitles: true,
+                          interval: 1,
                           reservedSize: 30,
                           getTitlesWidget: (value, meta) {
-                            const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+                            const days = [
+                              'SAT',
+                              'SUN',
+                              'MON',
+                              'TUE',
+                              'WED',
+                              'THU',
+                              'FRI',
+                            ];
                             int index = value.toInt();
                             if (index >= 0 && index < days.length) {
                               return SideTitleWidget(
                                 meta: meta,
                                 space: 10,
                                 child: Text(
-                                  dayLabels[index],
+                                  days[index],
                                   style: TextStyle(
                                     color: greyText,
                                     fontSize: 12,
@@ -447,14 +481,23 @@ class _ProgressPageState extends State<ProgressPage> {
                           },
                         ),
                       ),
-                      leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      leftTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      topTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      rightTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
                     ),
                     borderData: FlBorderData(show: false),
                     lineBarsData: [
                       LineChartBarData(
-                        spots: List.generate(7, (i) => FlSpot(i.toDouble(), weeklySteps[i])),
+                        spots: List.generate(
+                          7,
+                          (i) => FlSpot(i.toDouble(), weeklySteps[i]),
+                        ),
                         isCurved: true,
                         curveSmoothness: 0.5,
                         color: primaryDarkRed,
@@ -486,14 +529,15 @@ class _ProgressPageState extends State<ProgressPage> {
                     ],
                     lineTouchData: LineTouchData(
                       enabled: true,
-                      getTouchedSpotIndicator: (LineChartBarData barData, List<int> spotIndexes) {
-                        return spotIndexes.map((index) {
-                          return TouchedSpotIndicatorData(
-                            FlLine(color: primaryDarkRed, strokeWidth: 2),
-                            FlDotData(show: false),
-                          );
-                        }).toList();
-                      },
+                      getTouchedSpotIndicator:
+                          (LineChartBarData barData, List<int> spotIndexes) {
+                            return spotIndexes.map((index) {
+                              return TouchedSpotIndicatorData(
+                                FlLine(color: primaryDarkRed, strokeWidth: 2),
+                                FlDotData(show: false),
+                              );
+                            }).toList();
+                          },
                       touchTooltipData: LineTouchTooltipData(
                         getTooltipColor: (touchedSpot) => primaryDarkRed,
                         tooltipRoundedRadius: 8,
@@ -501,7 +545,10 @@ class _ProgressPageState extends State<ProgressPage> {
                           return touchedSpots.map((touchedSpot) {
                             return LineTooltipItem(
                               '${touchedSpot.y.toInt()} Steps',
-                              const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                              const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
                             );
                           }).toList();
                         },

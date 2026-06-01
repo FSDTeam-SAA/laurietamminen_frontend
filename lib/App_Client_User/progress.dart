@@ -67,45 +67,38 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
 
   // NOW: This performs Add Activity logic (formerly in add_steps.dart)
   Future<void> _handleConfirm() async {
-    final stepsInput = _stepsController.text.trim();
-    if (stepsInput.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Please enter steps")));
-      return;
-    }
+    if (_stepsController.text.isEmpty) return;
 
-    final inputSteps = double.tryParse(stepsInput);
-    if (inputSteps == null || inputSteps <= 0) {
+    final inputGoal = int.tryParse(_stepsController.text);
+    if (inputGoal == null || inputGoal <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter a valid number")),
+        const SnackBar(content: Text('Please enter a valid step goal')),
       );
       return;
     }
+
+    final newGoal = inputGoal;
 
     if (!mounted) return;
     setState(() => _isSubmitting = true);
     try {
-      // Defaulting to "walking" since there's no category selector here
-      final newTotal = todaySteps + inputSteps.toInt();
-      final result = await ApiService.createActivity(
-        category: "walking",
-        steps: newTotal.toDouble(),
-      );
-
-      if (!mounted) return;
-      if (result['success'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Steps added successfully!")),
-        );
-        _stepsController.clear();
-        _fetchTodayStats();
-      } else if (result['error_type'] == 'session_expired') {
-        _handleSessionExpired();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message'] ?? "Error adding steps")),
-        );
+      final result = await ApiService.updateStepGoal(newGoal);
+      if (mounted) {
+        if (result['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Step goal updated successfully!')),
+          );
+          _stepsController.clear();
+          _fetchTodayStats(); // Refresh data
+        } else if (result['error_type'] == 'session_expired') {
+          _handleSessionExpired();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Failed to update goal'),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -204,7 +197,7 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    "if you missed a day, you may add them to today's total",
+                   "set a goal helps you stay motivated!",
                     style: TextStyle(fontSize: 12, color: greyText),
                   ),
                   const SizedBox(height: 20),
@@ -286,7 +279,7 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                               text: TextSpan(
                                 children: [
                                   TextSpan(
-                                    text: "${stepGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
+                                    text: todaySteps.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},'),
                                     style: TextStyle(
                                       fontSize: 36,
                                       fontWeight: FontWeight.bold,
@@ -294,7 +287,7 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                                     ),
                                   ),
                                   TextSpan(
-                                    text: "/$todaySteps",
+                                    text: "/${stepGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
                                     style: TextStyle(
                                       fontSize: 36,
                                       fontWeight: FontWeight.bold,
@@ -381,16 +374,17 @@ class _ClientProgressPageState extends State<ClientProgressPage> {
                       bottomTitles: AxisTitles(
                         sideTitles: SideTitles(
                           showTitles: true,
+                          interval: 1,
                           reservedSize: 30,
                           getTitlesWidget: (value, meta) {
                             const days = [
+                              'SAT',
+                              'SUN',
                               'MON',
                               'TUE',
                               'WED',
                               'THU',
                               'FRI',
-                              'SAT',
-                              'SUN',
                             ];
                             int index = value.toInt();
                             if (index >= 0 && index < days.length) {

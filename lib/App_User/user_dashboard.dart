@@ -173,7 +173,9 @@ class _HomeContentState extends State<_HomeContent> {
                     onTap: () async {
                       await Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const EditProfilePage()),
+                        MaterialPageRoute(
+                          builder: (context) => const EditProfilePage(),
+                        ),
                       );
                       _fetchInitialData(); // Refresh data when returning
                     },
@@ -186,11 +188,19 @@ class _HomeContentState extends State<_HomeContent> {
                       child: CircleAvatar(
                         radius: 22,
                         backgroundColor: Colors.grey.shade300,
-                        backgroundImage: userProfile?['profile_picture_url'] != null && userProfile?['profile_picture_url'] != ""
+                        backgroundImage:
+                            userProfile?['profile_picture_url'] != null &&
+                                userProfile?['profile_picture_url'] != ""
                             ? NetworkImage(userProfile!['profile_picture_url'])
                             : null,
-                        child: userProfile?['profile_picture_url'] == null || userProfile?['profile_picture_url'] == ""
-                            ? const Icon(Icons.person, color: Colors.grey, size: 30)
+                        child:
+                            userProfile?['profile_picture_url'] == null ||
+                                userProfile?['profile_picture_url'] == ""
+                            ? const Icon(
+                                Icons.person,
+                                color: Colors.grey,
+                                size: 30,
+                              )
                             : null,
                       ),
                     ),
@@ -198,14 +208,17 @@ class _HomeContentState extends State<_HomeContent> {
                 ],
               ),
               const SizedBox(height: 30),
-              
+
               // Daily Streak Card
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFFBFC).withOpacity(0.5),
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: const Color(0xFFF0D5DD), width: 1.5),
+                  border: Border.all(
+                    color: const Color(0xFFF0D5DD),
+                    width: 1.5,
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,22 +234,30 @@ class _HomeContentState extends State<_HomeContent> {
                             color: Color(0xFF2B0A16),
                           ),
                         ),
-                        Image.asset('assets/images/App_features/fire_icon.png', height: 24),
+                        Image.asset(
+                          'assets/images/App_features/fire_icon.png',
+                          height: 24,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 20),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: List.generate(7, (index) => Expanded(
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 3),
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: index < streak ? const Color(0xFF800B39) : const Color(0xFFD3E1DD),
-                            borderRadius: BorderRadius.circular(2.5),
+                      children: List.generate(
+                        7,
+                        (index) => Expanded(
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 3),
+                            height: 5,
+                            decoration: BoxDecoration(
+                              color: index < streak
+                                  ? const Color(0xFF800B39)
+                                  : const Color(0xFFD3E1DD),
+                              borderRadius: BorderRadius.circular(2.5),
+                            ),
                           ),
                         ),
-                      )),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -250,9 +271,9 @@ class _HomeContentState extends State<_HomeContent> {
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 30),
-              
+
               // Middle Circle with Text overlay
               Center(
                 child: Stack(
@@ -266,16 +287,19 @@ class _HomeContentState extends State<_HomeContent> {
                     Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const SizedBox(height: 5), // Adjust based on image footprints
+                        const SizedBox(
+                          height: 5,
+                        ), // Adjust based on image footprints
                         SizedBox(
-                          width: 280, // Constrain width so it stays inside the circle
+                          width:
+                              280, // Constrain width so it stays inside the circle
                           child: FittedBox(
                             fit: BoxFit.scaleDown,
                             child: RichText(
                               text: TextSpan(
                                 children: [
                                   TextSpan(
-                                    text: "${stepGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
+                                    text: todaySteps.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},'),
                                     style: const TextStyle(
                                       fontSize: 32,
                                       fontWeight: FontWeight.bold,
@@ -283,7 +307,7 @@ class _HomeContentState extends State<_HomeContent> {
                                     ),
                                   ),
                                   TextSpan(
-                                    text: "/$todaySteps",
+                                    text: "/${stepGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
                                     style: const TextStyle(
                                       fontSize: 32,
                                       fontWeight: FontWeight.bold,
@@ -309,9 +333,9 @@ class _HomeContentState extends State<_HomeContent> {
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 30),
-              
+
               // Daily Momentum
               const Text(
                 "Daily Momentum",
@@ -342,7 +366,9 @@ class _HomeContentState extends State<_HomeContent> {
                     ),
                   ),
                   FractionallySizedBox(
-                    widthFactor: stepGoal == 0 ? 0.0 : (todaySteps / stepGoal).clamp(0.0, 1.0),
+                    widthFactor: stepGoal == 0
+                        ? 0.0
+                        : (todaySteps / stepGoal).clamp(0.0, 1.0),
                     child: Container(
                       height: 14,
                       decoration: BoxDecoration(
