@@ -241,7 +241,7 @@ class _ProgressPageState extends State<ProgressPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "PLEASE ENTER YOUR GOALS FOR TODAY",
+                    "PLEASE ENTER YOUR GOALS",
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -273,7 +273,7 @@ class _ProgressPageState extends State<ProgressPage> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    "set a goal helps you stay motivated!",
+                    "",
                     style: TextStyle(fontSize: 12, color: greyText),
                   ),
                   const SizedBox(height: 20),
