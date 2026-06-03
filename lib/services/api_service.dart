@@ -4,6 +4,8 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http_parser/http_parser.dart';
+import 'package:geolocator/geolocator.dart';
+import 'location_service.dart';
 
 class ApiService {
   static const String baseUrl = 'http://2.24.103.56:5000/api';
@@ -509,14 +511,67 @@ class ApiService {
     return await _authenticatedRequest('GET', '/admin/alerts/$alertId');
   }
 
+  // Helper to fetch current coordinates and reverse-geocode to get the actual street address
+  static Future<Map<String, dynamic>> getCurrentLocationData() async {
+    final hasPermission = await LocationService.handleLocationPermission();
+    if (!hasPermission) {
+      throw Exception("Location permission is required to trigger alert. Please enable location services.");
+    }
+
+    try {
+      // Step 1: Try cached/last known position first (instant, no GPS radio needed)
+      Position? position = await Geolocator.getLastKnownPosition();
+
+      // Step 2: If no cached position, get fresh position with medium accuracy for speed
+      position ??= await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.medium,
+        ),
+      ).timeout(const Duration(seconds: 8));
+
+      final double lat = position.latitude;
+      final double lng = position.longitude;
+      final int accuracy = position.accuracy.round();
+      String streetAddress = "${lat.toStringAsFixed(6)}, ${lng.toStringAsFixed(6)}";
+
+      // Step 3: Reverse geocode via OSM Nominatim (non-blocking, failure is OK)
+      try {
+        final response = await http.get(
+          Uri.parse('https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lng&zoom=18&addressdetails=1'),
+          headers: {
+            'User-Agent': 'SolidSteps/1.0 (contact@solidsteps.com)'
+          },
+        ).timeout(const Duration(seconds: 5));
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          if (data['display_name'] != null) {
+            streetAddress = data['display_name'].toString();
+          }
+        }
+      } catch (e) {
+        debugPrint("Reverse geocoding error (using coordinates as address): $e");
+      }
+
+      return {
+        'lat': lat,
+        'lng': lng,
+        'accuracy': accuracy,
+        'streetAddress': streetAddress,
+      };
+    } catch (e) {
+      throw Exception("Failed to get GPS location. Please ensure GPS is enabled and try again.");
+    }
+  }
+
   // Trigger Alert
   static Future<Map<String, dynamic>> triggerAlert({
     required String triggerToken,
     required String dateOfBirth,
-    double lat = 23.8103,
-    double lng = 90.4125,
-    int accuracy = 12,
-    String streetAddress = "123 Demo Street, Dhaka",
+    required double lat,
+    required double lng,
+    required int accuracy,
+    required String streetAddress,
     String signalStrength = "strong",
     String connectionState = "4g",
     String deviceId = "device-001",
@@ -541,10 +596,10 @@ class ApiService {
   // Update Alert Location
   static Future<Map<String, dynamic>> updateAlertLocation({
     required String alertId,
-    double lat = 23.8111,
-    double lng = 90.4131,
-    int accuracy = 8,
-    String streetAddress = "Updated Demo Street, Dhaka",
+    required double lat,
+    required double lng,
+    required int accuracy,
+    required String streetAddress,
     String signalStrength = "medium",
     String connectionState = "wifi",
     String deviceId = "device-001",

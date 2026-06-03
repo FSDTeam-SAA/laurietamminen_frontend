@@ -186,9 +186,19 @@ class _ClientAddStepsPageState extends State<ClientAddStepsPage> {
     setState(() => _isSaving = true);
 
     try {
+      // Step 1: Get actual GPS location first (separate from API call)
+      final locData = await ApiService.getCurrentLocationData();
+
+      if (!mounted) return;
+
+      // Step 2: Trigger alert with actual coordinates
       final result = await ApiService.triggerAlert(
         triggerToken: _triggerToken!,
         dateOfBirth: dob,
+        lat: locData['lat'],
+        lng: locData['lng'],
+        accuracy: locData['accuracy'],
+        streetAddress: locData['streetAddress'],
       );
 
       if (!mounted) return;
