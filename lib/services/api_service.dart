@@ -9,7 +9,10 @@ import 'location_service.dart';
 
 class ApiService {
   // Live server URL
-  static const String baseUrl = 'http://2.24.103.56:5000/api';
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://2.24.103.56:5000/api',
+  );
 
   // Local server URL (Android Emulator)
   // static const String baseUrl = 'http://10.0.2.2:5000/api';

@@ -311,7 +311,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 onTap: _handleLogout,
               ),
               _buildMenuItem(
-                icon: Icons.delete_forever_outlined,
+                icon: Icons.person_remove_outlined,
                 title: "Delete Account",
                 onTap: _handleDeleteAccount,
                 isDestructive: true,
