@@ -8,7 +8,14 @@ import 'package:geolocator/geolocator.dart';
 import 'location_service.dart';
 
 class ApiService {
+  // Live server URL
   static const String baseUrl = 'http://2.24.103.56:5000/api';
+
+  // Local server URL (Android Emulator)
+  // static const String baseUrl = 'http://10.0.2.2:5000/api';
+
+  // Local server URL (Physical Device)
+  // static const String baseUrl = 'http://10.10.26.118:5000/api';
 
   // Check Server Health
   static Future<void> checkServerHealth() async {
@@ -515,7 +522,9 @@ class ApiService {
   static Future<Map<String, dynamic>> getCurrentLocationData() async {
     final hasPermission = await LocationService.handleLocationPermission();
     if (!hasPermission) {
-      throw Exception("Location permission is required to trigger alert. Please enable location services.");
+      throw Exception(
+        "Location permission is required to trigger alert. Please enable location services.",
+      );
     }
 
     try {
@@ -532,16 +541,21 @@ class ApiService {
       final double lat = position.latitude;
       final double lng = position.longitude;
       final int accuracy = position.accuracy.round();
-      String streetAddress = "${lat.toStringAsFixed(6)}, ${lng.toStringAsFixed(6)}";
+      String streetAddress =
+          "${lat.toStringAsFixed(6)}, ${lng.toStringAsFixed(6)}";
 
       // Step 3: Reverse geocode via OSM Nominatim (non-blocking, failure is OK)
       try {
-        final response = await http.get(
-          Uri.parse('https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lng&zoom=18&addressdetails=1'),
-          headers: {
-            'User-Agent': 'SolidSteps/1.0 (contact@solidsteps.com)'
-          },
-        ).timeout(const Duration(seconds: 5));
+        final response = await http
+            .get(
+              Uri.parse(
+                'https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lng&zoom=18&addressdetails=1',
+              ),
+              headers: {
+                'User-Agent': 'SolidSteps/1.0 (contact@solidsteps.com)',
+              },
+            )
+            .timeout(const Duration(seconds: 5));
 
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
@@ -550,7 +564,9 @@ class ApiService {
           }
         }
       } catch (e) {
-        debugPrint("Reverse geocoding error (using coordinates as address): $e");
+        debugPrint(
+          "Reverse geocoding error (using coordinates as address): $e",
+        );
       }
 
       return {
@@ -560,7 +576,9 @@ class ApiService {
         'streetAddress': streetAddress,
       };
     } catch (e) {
-      throw Exception("Failed to get GPS location. Please ensure GPS is enabled and try again.");
+      throw Exception(
+        "Failed to get GPS location. Please ensure GPS is enabled and try again.",
+      );
     }
   }
 
@@ -641,5 +659,14 @@ class ApiService {
         'entry_time': entryTime ?? DateTime.now().toUtc().toIso8601String(),
       },
     );
+  }
+
+  // Delete User Account
+  static Future<Map<String, dynamic>> deleteAccount() async {
+    final result = await _authenticatedRequest('DELETE', '/users/profile');
+    if (result['success'] == true) {
+      await clearSession();
+    }
+    return result;
   }
 }

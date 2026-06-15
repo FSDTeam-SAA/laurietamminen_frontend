@@ -115,6 +115,73 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  Future<void> _handleDeleteAccount() async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            "Delete Account",
+            style: TextStyle(color: darkText, fontWeight: FontWeight.bold),
+          ),
+          content: const Text(
+            "Are you sure you want to delete your account? This action is permanent and cannot be undone.",
+            style: TextStyle(fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(
+                "Cancel",
+                style: TextStyle(color: greyText, fontSize: 16),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text(
+                "Delete",
+                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true) {
+      if (!mounted) return;
+      setState(() => _isLoading = true);
+      try {
+        final result = await ApiService.deleteAccount();
+        if (!mounted) return;
+        if (result['success'] == true) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const WelcomeOnboarding()),
+            (route) => false,
+          );
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Account deleted successfully.')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message'] ?? 'Account deletion failed')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error deleting account: $e')),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -243,6 +310,12 @@ class _SettingsPageState extends State<SettingsPage> {
                 title: "Log Out",
                 onTap: _handleLogout,
               ),
+              _buildMenuItem(
+                icon: Icons.delete_forever_outlined,
+                title: "Delete Account",
+                onTap: _handleDeleteAccount,
+                isDestructive: true,
+              ),
             ],
           ),
         ),
@@ -255,7 +328,12 @@ class _SettingsPageState extends State<SettingsPage> {
     required String title,
     VoidCallback? onTap,
     Widget? trailing,
+    bool isDestructive = false,
   }) {
+    final Color iconColor = isDestructive ? Colors.red.shade700 : primaryDarkRed;
+    final Color bgColor = isDestructive ? Colors.red.shade50 : const Color(0xFFFEEAEF);
+    final Color textColor = isDestructive ? Colors.red.shade700 : darkText;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 1),
       decoration: const BoxDecoration(
@@ -268,17 +346,17 @@ class _SettingsPageState extends State<SettingsPage> {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: const Color(0xFFFEEAEF),
+            color: bgColor,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(icon, color: primaryDarkRed, size: 24),
+          child: Icon(icon, color: iconColor, size: 24),
         ),
         title: Text(
           title,
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w500,
-            color: darkText,
+            color: textColor,
           ),
         ),
         trailing: trailing,
