@@ -57,11 +57,14 @@ class _AuthWrapperState extends State<AuthWrapper> {
   Future<void> _checkAuth() async {
     debugPrint("Auth check started...");
     final token = await ApiService.getAccessToken();
+    final hasSavedSession = await ApiService.hasSavedSession();
     final role = await ApiService.getUserRole();
-    debugPrint("Token found: ${token != null}, Role: $role");
+    debugPrint(
+      "Token found: ${token != null}, Saved session: $hasSavedSession, Role: $role",
+    );
 
     if (mounted) {
-      if (token != null && role != null) {
+      if (hasSavedSession && role != null) {
         debugPrint("Verifying session with getProfile()...");
         try {
           final result = await ApiService.getProfile();
@@ -70,41 +73,29 @@ class _AuthWrapperState extends State<AuthWrapper> {
           if (mounted) {
             if (result['success'] == false) {
               final errorMsg = result['message']?.toString().toLowerCase() ?? "";
-              debugPrint("Session invalid: ${result['error_type']}, Message: $errorMsg");
+              debugPrint(
+                "Session invalid: ${result['error_type']}, Message: $errorMsg",
+              );
 
-              if (result['error_type'] == 'session_expired' || errorMsg.contains('jwt')) {
+              if (result['error_type'] == 'session_expired' ||
+                  errorMsg.contains('jwt')) {
                 debugPrint("Redirecting to WelcomeOnboarding due to token issue.");
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => const WelcomeOnboarding()),
+                  MaterialPageRoute(
+                    builder: (context) => const WelcomeOnboarding(),
+                  ),
                 );
                 return;
               }
             }
 
-            debugPrint("Proceeding to dashboard for role: $role");
-            Widget dashboard;
-            if (role == 'admin') {
-              dashboard = const admin.AdminDashboardScreen();
-            } else if (role == 'client') {
-              dashboard = const client.ClientUserDashboardScreen();
-            } else {
-              dashboard = const user.UserDashboardScreen();
-            }
-
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => dashboard),
-            );
+            _goToDashboard(role);
           }
         } catch (e) {
           debugPrint("Error during getProfile: $e");
-          // Fallback if needed
           if (mounted) {
-             Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const WelcomeOnboarding()),
-            );
+            _goToDashboard(role);
           }
         }
       } else {
@@ -115,6 +106,23 @@ class _AuthWrapperState extends State<AuthWrapper> {
         );
       }
     }
+  }
+
+  void _goToDashboard(String role) {
+    debugPrint("Proceeding to dashboard for role: $role");
+    Widget dashboard;
+    if (role == 'admin') {
+      dashboard = const admin.AdminDashboardScreen();
+    } else if (role == 'client') {
+      dashboard = const client.ClientUserDashboardScreen();
+    } else {
+      dashboard = const user.UserDashboardScreen();
+    }
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => dashboard),
+    );
   }
 
   @override

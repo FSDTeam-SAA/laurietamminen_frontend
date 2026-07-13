@@ -7,12 +7,15 @@ import 'package:http_parser/http_parser.dart';
 import 'package:geolocator/geolocator.dart';
 import 'location_service.dart';
 
+enum _TokenRefreshResult { refreshed, sessionExpired, failed }
+
 class ApiService {
   // Live server URL
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
     defaultValue: 'http://2.24.103.56:5000/api',
   );
+  static const Duration _tokenRefreshBuffer = Duration(minutes: 5);
 
   // Local server URL (Android Emulator)
   // static const String baseUrl = 'http://10.0.2.2:5000/api';
@@ -98,14 +101,69 @@ class ApiService {
     return token;
   }
 
+  static Future<bool> hasSavedSession() async {
+    final refreshToken = await getRefreshToken();
+    final role = await getUserRole();
+    return refreshToken != null && role != null;
+  }
+
+  static DateTime? _jwtExpiresAt(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return null;
+
+      final payload = utf8.decode(
+        base64Url.decode(base64Url.normalize(parts[1])),
+      );
+      final data = jsonDecode(payload);
+      final exp = data['exp'];
+      if (exp is! num) return null;
+
+      return DateTime.fromMillisecondsSinceEpoch(
+        exp.toInt() * 1000,
+        isUtc: true,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static bool _isTokenExpiringSoon(String token) {
+    final expiresAt = _jwtExpiresAt(token);
+    if (expiresAt == null) return false;
+    return expiresAt.isBefore(DateTime.now().toUtc().add(_tokenRefreshBuffer));
+  }
+
+  static Future<bool> ensureValidSession() async {
+    final accessToken = await getAccessToken();
+    final refreshToken = await getRefreshToken();
+
+    if (refreshToken == null) {
+      return accessToken != null;
+    }
+
+    if (accessToken == null || _isTokenExpiringSoon(accessToken)) {
+      return await refreshAccessToken();
+    }
+
+    return true;
+  }
+
   static bool _isRefreshing = false;
   static Completer<bool>? _refreshCompleter;
 
   // Refresh Access Token
   static Future<bool> refreshAccessToken() async {
+    return await _refreshAccessTokenDetailed() == _TokenRefreshResult.refreshed;
+  }
+
+  static Future<_TokenRefreshResult> _refreshAccessTokenDetailed() async {
     if (_isRefreshing) {
       debugPrint("Token refresh already in progress, waiting...");
-      return _refreshCompleter?.future ?? Future.value(false);
+      final refreshed = await (_refreshCompleter?.future ?? Future.value(false));
+      return refreshed
+          ? _TokenRefreshResult.refreshed
+          : _TokenRefreshResult.failed;
     }
 
     _isRefreshing = true;
@@ -116,7 +174,7 @@ class ApiService {
       _isRefreshing = false;
       _refreshCompleter!.complete(false);
       _refreshCompleter = null;
-      return false;
+      return _TokenRefreshResult.sessionExpired;
     }
 
     try {
@@ -132,11 +190,15 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success'] == true) {
-          final rawAccess = data['data']?['access_token'] ?? data['data']?['accessToken'];
-          final rawRefresh = data['data']?['refresh_token'] ?? data['data']?['refreshToken'];
+          final rawAccess =
+              data['data']?['access_token'] ?? data['data']?['accessToken'];
+          final rawRefresh =
+              data['data']?['refresh_token'] ?? data['data']?['refreshToken'];
 
-          final String newAccess = rawAccess != null ? rawAccess.toString() : '';
-          final String newRefresh = rawRefresh != null ? rawRefresh.toString() : '';
+          final String newAccess =
+              rawAccess != null ? rawAccess.toString() : '';
+          final String newRefresh =
+              rawRefresh != null ? rawRefresh.toString() : '';
 
           if (newAccess.isNotEmpty && newAccess != "null") {
             await saveTokens(newAccess, newRefresh);
@@ -144,11 +206,26 @@ class ApiService {
             _refreshCompleter!.complete(true);
             _isRefreshing = false;
             _refreshCompleter = null;
-            return true;
+            return _TokenRefreshResult.refreshed;
           }
         }
       }
       debugPrint("Token refresh failed with status: ${response.statusCode}");
+      final bodyStr = response.body.toLowerCase();
+      final refreshTokenRejected = response.statusCode == 400 ||
+          response.statusCode == 401 ||
+          response.statusCode == 403 ||
+          bodyStr.contains("refresh token") ||
+          bodyStr.contains("jwt expired") ||
+          bodyStr.contains("token expired") ||
+          bodyStr.contains("invalid token");
+
+      _refreshCompleter!.complete(false);
+      _isRefreshing = false;
+      _refreshCompleter = null;
+      return refreshTokenRejected
+          ? _TokenRefreshResult.sessionExpired
+          : _TokenRefreshResult.failed;
     } catch (e) {
       debugPrint("Token refresh failed with error: $e");
     }
@@ -156,7 +233,7 @@ class ApiService {
     _refreshCompleter!.complete(false);
     _isRefreshing = false;
     _refreshCompleter = null;
-    return false;
+    return _TokenRefreshResult.failed;
   }
 
   // Generic Authenticated Request with Auto-Refresh
@@ -166,8 +243,22 @@ class ApiService {
     Map<String, dynamic>? body,
   }) async {
     String? token = await getAccessToken();
+    final refreshToken = await getRefreshToken();
 
-    // Check if token is invalid or the string "null"
+    if (refreshToken != null &&
+        (token == null || _isTokenExpiringSoon(token))) {
+      final refreshResult = await _refreshAccessTokenDetailed();
+      if (refreshResult == _TokenRefreshResult.refreshed) {
+        token = await getAccessToken();
+      } else if (refreshResult == _TokenRefreshResult.failed) {
+        return {
+          'success': false,
+          'message': 'Unable to refresh session. Please check your connection.',
+          'error_type': 'refresh_failed',
+        };
+      }
+    }
+
     if (token == null ||
         token.isEmpty ||
         token == "null" ||
@@ -245,17 +336,24 @@ class ApiService {
         debugPrint(
           "Token error (${response.statusCode}) for $path, attempting refresh...",
         );
-        final refreshed = await refreshAccessToken();
-        if (refreshed) {
+        final refreshResult = await _refreshAccessTokenDetailed();
+        if (refreshResult == _TokenRefreshResult.refreshed) {
           token = await getAccessToken();
           response = await makeRequest(token);
-        } else {
+        } else if (refreshResult == _TokenRefreshResult.sessionExpired) {
           debugPrint("Refresh failed for $path, clearing session.");
           await clearSession();
           return {
             'success': false,
             'message': 'Session expired. Please login again.',
             'error_type': 'session_expired',
+          };
+        } else {
+          return {
+            'success': false,
+            'message':
+                'Unable to refresh session. Please check your connection.',
+            'error_type': 'refresh_failed',
           };
         }
       }
@@ -410,7 +508,12 @@ class ApiService {
 
   // Logout
   static Future<Map<String, dynamic>> logout() async {
-    final result = await _authenticatedRequest('POST', '/auth/logout');
+    final refreshToken = await getRefreshToken();
+    final result = await _authenticatedRequest(
+      'POST',
+      '/auth/logout',
+      body: refreshToken != null ? {'refresh_token': refreshToken} : null,
+    );
     await clearSession(); // Always clear locally
     return result;
   }
@@ -429,6 +532,15 @@ class ApiService {
     double? weight,
     String? imagePath,
   }) async {
+    final hasUsableToken = await ensureValidSession();
+    if (!hasUsableToken) {
+      return {
+        'success': false,
+        'message': 'Unable to refresh session. Please check your connection.',
+        'error_type': 'refresh_failed',
+      };
+    }
+
     Future<http.Response> makeRequest() async {
       final token = await getAccessToken();
       var request = http.MultipartRequest(
@@ -463,14 +575,21 @@ class ApiService {
       debugPrint(
         "Token expired during multipart request, attempting refresh...",
       );
-      final refreshed = await refreshAccessToken();
-      if (refreshed) {
+      final refreshResult = await _refreshAccessTokenDetailed();
+      if (refreshResult == _TokenRefreshResult.refreshed) {
         response = await makeRequest();
-      } else {
+      } else if (refreshResult == _TokenRefreshResult.sessionExpired) {
         await clearSession();
         return {
           'success': false,
           'message': 'Session expired. Please login again.',
+          'error_type': 'session_expired',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': 'Unable to refresh session. Please check your connection.',
+          'error_type': 'refresh_failed',
         };
       }
     }
