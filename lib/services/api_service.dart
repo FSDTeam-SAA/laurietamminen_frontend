@@ -58,8 +58,12 @@ class ApiService {
     String refreshToken,
   ) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('access_token', accessToken);
-    await prefs.setString('refresh_token', refreshToken);
+    if (accessToken != "null" && accessToken.isNotEmpty) {
+      await prefs.setString('access_token', accessToken);
+    }
+    if (refreshToken != "null" && refreshToken.isNotEmpty) {
+      await prefs.setString('refresh_token', refreshToken);
+    }
   }
 
   // Save user role
@@ -71,7 +75,11 @@ class ApiService {
   // Get tokens
   static Future<String?> getAccessToken() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('access_token');
+    final token = prefs.getString('access_token');
+    if (token == null || token.isEmpty || token == "null" || token.length < 10) {
+      return null;
+    }
+    return token;
   }
 
   // Get user role
@@ -83,7 +91,11 @@ class ApiService {
   // Get refresh token
   static Future<String?> getRefreshToken() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('refresh_token');
+    final token = prefs.getString('refresh_token');
+    if (token == null || token.isEmpty || token == "null" || token.length < 10) {
+      return null;
+    }
+    return token;
   }
 
   static bool _isRefreshing = false;
@@ -103,6 +115,7 @@ class ApiService {
     if (refreshToken == null) {
       _isRefreshing = false;
       _refreshCompleter!.complete(false);
+      _refreshCompleter = null;
       return false;
     }
 
@@ -119,13 +132,18 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success'] == true) {
-          final String newAccess = data['data']['access_token'].toString();
-          final String newRefresh = data['data']['refresh_token'].toString();
+          final rawAccess = data['data']?['access_token'] ?? data['data']?['accessToken'];
+          final rawRefresh = data['data']?['refresh_token'] ?? data['data']?['refreshToken'];
 
-          if (newAccess != "null" && newAccess.isNotEmpty) {
+          final String newAccess = rawAccess != null ? rawAccess.toString() : '';
+          final String newRefresh = rawRefresh != null ? rawRefresh.toString() : '';
+
+          if (newAccess.isNotEmpty && newAccess != "null") {
             await saveTokens(newAccess, newRefresh);
             debugPrint("Token refreshed successfully.");
             _refreshCompleter!.complete(true);
+            _isRefreshing = false;
+            _refreshCompleter = null;
             return true;
           }
         }
@@ -201,13 +219,21 @@ class ApiService {
 
     try {
       var response = await makeRequest(token);
+      final bodyStr = response.body.toLowerCase();
 
-      // Handle common token errors (401 Unauthorized or 400 with "jwt malformed")
-      bool isTokenError = response.statusCode == 401;
+      // Handle common token errors (401 Unauthorized, 403 Forbidden, or body containing token expiration details)
+      bool isTokenError = response.statusCode == 401 ||
+          response.statusCode == 403 ||
+          bodyStr.contains("jwt expired") ||
+          bodyStr.contains("jwt malformed") ||
+          bodyStr.contains("token expired") ||
+          bodyStr.contains("invalid token") ||
+          bodyStr.contains("invalid signature") ||
+          bodyStr.contains("expired token") ||
+          bodyStr.contains("jwt must be provided");
 
       // Some backends return 400 for malformed JWTs
       if (response.statusCode == 400) {
-        final bodyStr = response.body.toLowerCase();
         if (bodyStr.contains("jwt") ||
             bodyStr.contains("token") ||
             bodyStr.contains("malformed")) {
@@ -305,10 +331,14 @@ class ApiService {
 
     final data = jsonDecode(response.body);
     if (data['success'] == true) {
-      final String access = data['data']['access_token'].toString();
-      final String refresh = data['data']['refresh_token'].toString();
+      final rawAccess = data['data']?['access_token'] ?? data['data']?['accessToken'];
+      final rawRefresh = data['data']?['refresh_token'] ?? data['data']?['refreshToken'];
+
+      final String access = rawAccess != null ? rawAccess.toString() : '';
+      final String refresh = rawRefresh != null ? rawRefresh.toString() : '';
 
       debugPrint("Saving tokens. Access length: ${access.length}");
+      await clearSession(); // Clear previous session before saving new tokens
       await saveTokens(access, refresh);
       await saveUserRole(data['data']['user']['role'].toString());
     }
